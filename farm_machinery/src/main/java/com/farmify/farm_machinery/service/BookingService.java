@@ -32,7 +32,6 @@ public class BookingService {
     }
 
     public Booking createBooking(Booking booking) {
-        // Business logic to create a booking
         return bookingRepository.save(booking);
     }
 }
