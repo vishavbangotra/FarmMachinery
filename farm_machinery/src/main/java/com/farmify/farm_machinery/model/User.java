@@ -10,7 +10,6 @@ public class User {
     @Id
     private String phone;
     private String name;
-    private String password;
 
     public String getName() {
         return name;
@@ -26,13 +25,5 @@ public class User {
 
     public void setPhone(String phone) {
         this.phone = phone;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
     }
 }

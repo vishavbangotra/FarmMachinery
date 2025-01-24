@@ -35,21 +35,21 @@ public class UserService {
         return false;
     }
 
-    public User registerUser(String phone, String name, String password) {
-        if (userRepository.findByPhone(phone) != null) {
+    public User registerUser(String phone, String name) {
+        User existingUser = userRepository.findByPhone(phone);
+        if (existingUser != null) {
             throw new RuntimeException("User already registered with this phone number");
         }
         User user = new User();
         user.setPhone(phone);
         user.setName(name);
-        user.setPassword(password); // Ideally, hash passwords before storing
         return userRepository.save(user);
     }
 
-    public User loginUser(String phone, String password) {
+    public User loginUser(String phone) {
         User user = userRepository.findByPhone(phone);
-        if (user == null || !user.getPassword().equals(password)) {
-            throw new RuntimeException("Invalid phone number or password");
+        if (user == null) {
+            throw new RuntimeException("User not registered");
         }
         loggedInUsers.put(phone, user);
         return user;
