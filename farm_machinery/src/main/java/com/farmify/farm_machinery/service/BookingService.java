@@ -1,9 +1,11 @@
 package com.farmify.farm_machinery.service;
 
 import com.farmify.farm_machinery.repository.BookingRepository;
+import com.farmify.farm_machinery.repository.UserRepository;
 import com.farmify.farm_machinery.model.Booking;
 import com.farmify.farm_machinery.model.Machinery;
 import com.farmify.farm_machinery.model.User;
+import com.farmify.farm_machinery.model.BookingStatus;
 import java.sql.Date;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -12,26 +14,66 @@ import org.springframework.stereotype.Service;
 public class BookingService {
 
     private final BookingRepository bookingRepository;
+    private final UserRepository userRepository;
 
-    public BookingService(BookingRepository bookingRepository) {
+    public BookingService(BookingRepository bookingRepository, UserRepository userRepository) {
         this.bookingRepository = bookingRepository;
+        this.userRepository = userRepository;
     }
 
-    public List<Booking> getBookingsForCustomer(User customer) {
-        return bookingRepository.findByCustomer(customer);
+    public void createBookingRequest(String customerPhone, String machineryType, Double latitude,
+            Double longitude, Date startDate, Date endDate, Double radius) {
+        User customer = userRepository.findByPhone(customerPhone);
+        if (customer == null) {
+            throw new RuntimeException("Customer not found");
+        }
+
+        // Find nearby owners
+        List<User> nearbyOwners = userRepository.findNearbyOwners(machineryType, latitude, longitude, radius);
+
+        // Create booking
+        Booking booking = new Booking();
+        booking.setCustomer(customer);
+        // booking.setMachine(machineryType);
+        booking.setStartDate(startDate);
+        booking.setEndDate(endDate);
+        booking.setRequestedOwners(nearbyOwners);
+        booking.setStatus(BookingStatus.PENDING);
+
+        bookingRepository.save(booking);
+
+        // Notify owners
+        nearbyOwners.forEach(owner -> sendNotification(owner, booking));
     }
 
-    public List<Booking> getBookingsForOwner(User owner) {
-        return bookingRepository.findByOwner(owner);
+    public void respondToBooking(Long bookingId, String ownerPhone, boolean accept) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        User owner = userRepository.findByPhone(ownerPhone);
+        if (!booking.getRequestedOwners().contains(owner)) {
+            throw new RuntimeException("Owner not eligible to respond");
+        }
+
+        if (accept) {
+            booking.setOwner(owner);
+            booking.setStatus(BookingStatus.CONFIRMED);
+        } else {
+            booking.getRequestedOwners().remove(owner);
+            if (booking.getRequestedOwners().isEmpty()) {
+                booking.setStatus(BookingStatus.CANCELLED);
+            }
+        }
+
+        bookingRepository.save(booking);
+        sendResponseNotification(owner, booking, accept);
     }
 
-    public boolean isMachineAvailable(Machinery machine, Date startDate, Date endDate) {
-        List<Booking> overlappingBookings = bookingRepository
-                .findByMachineAndStartDateLessThanEqualAndEndDateGreaterThanEqual(machine, endDate, startDate);
-        return overlappingBookings.isEmpty();
+    private void sendNotification(User owner, Booking booking) {
+        // Logic to notify the owner
     }
 
-    public Booking createBooking(Booking booking) {
-        return bookingRepository.save(booking);
+    private void sendResponseNotification(User owner, Booking booking, boolean accept) {
+        // Logic to notify the customer about the owner's response
     }
 }
