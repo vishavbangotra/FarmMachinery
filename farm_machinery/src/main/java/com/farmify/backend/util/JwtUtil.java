@@ -1,4 +1,4 @@
-package com.farmify.farm_machinery.util;
+package com.farmify.backend.util;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

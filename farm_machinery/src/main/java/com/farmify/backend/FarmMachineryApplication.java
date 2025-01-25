@@ -1,4 +1,4 @@
-package com.farmify.farm_machinery;
+package com.farmify.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

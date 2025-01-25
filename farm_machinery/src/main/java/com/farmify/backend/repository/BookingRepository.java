@@ -1,11 +1,12 @@
-package com.farmify.farm_machinery.repository;
+package com.farmify.backend.repository;
 
-import com.farmify.farm_machinery.model.Booking;
-import com.farmify.farm_machinery.model.User;
-import com.farmify.farm_machinery.model.Machinery;
-import com.farmify.farm_machinery.model.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import com.farmify.backend.model.Booking;
+import com.farmify.backend.model.BookingStatus;
+import com.farmify.backend.model.Machinery;
+import com.farmify.backend.model.User;
 
 import java.util.Date;
 import java.util.List;

@@ -1,9 +1,10 @@
-package com.farmify.farm_machinery.controller;
+package com.farmify.backend.controller;
 
-import com.farmify.farm_machinery.model.User;
-import com.farmify.farm_machinery.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.farmify.backend.model.User;
+import com.farmify.backend.service.UserService;
 
 @RestController
 @RequestMapping("/api/users")

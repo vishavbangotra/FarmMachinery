@@ -1,14 +1,15 @@
-package com.farmify.farm_machinery.service;
+package com.farmify.backend.service;
 
-import com.farmify.farm_machinery.repository.BookingRepository;
-import com.farmify.farm_machinery.repository.UserRepository;
-import com.farmify.farm_machinery.model.Booking;
-import com.farmify.farm_machinery.model.Machinery;
-import com.farmify.farm_machinery.model.User;
-import com.farmify.farm_machinery.model.BookingStatus;
 import java.sql.Date;
 import java.util.List;
 import org.springframework.stereotype.Service;
+
+import com.farmify.backend.model.Booking;
+import com.farmify.backend.model.BookingStatus;
+import com.farmify.backend.model.Machinery;
+import com.farmify.backend.model.User;
+import com.farmify.backend.repository.BookingRepository;
+import com.farmify.backend.repository.UserRepository;
 
 @Service
 public class BookingService {
@@ -34,7 +35,7 @@ public class BookingService {
         // Create booking
         Booking booking = new Booking();
         booking.setCustomer(customer);
-        
+
         // booking.setMachine(machineryType);
         booking.setStartDate(startDate);
         booking.setEndDate(endDate);

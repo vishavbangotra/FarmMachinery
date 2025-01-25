@@ -1,7 +1,8 @@
-package com.farmify.farm_machinery.repository;
+package com.farmify.backend.repository;
 
-import com.farmify.farm_machinery.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.farmify.backend.model.User;
 
 public interface UserRepository extends JpaRepository<User, String> {
     User findByPhone(String phone);

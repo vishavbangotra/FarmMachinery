@@ -1,9 +1,10 @@
-package com.farmify.farm_machinery.service;
+package com.farmify.backend.service;
 
-import com.farmify.farm_machinery.model.User;
-import com.farmify.farm_machinery.repository.UserRepository;
-import com.farmify.farm_machinery.util.JwtUtil;
 import org.springframework.stereotype.Service;
+
+import com.farmify.backend.model.User;
+import com.farmify.backend.repository.UserRepository;
+import com.farmify.backend.util.JwtUtil;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,13 +1,15 @@
-package com.farmify.farm_machinery.controller;
+package com.farmify.backend.controller;
 
-import com.farmify.farm_machinery.model.Booking;
-import com.farmify.farm_machinery.model.BookingStatus;
-import com.farmify.farm_machinery.model.User;
-import com.farmify.farm_machinery.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.farmify.backend.model.Booking;
+import com.farmify.backend.model.BookingStatus;
+import com.farmify.backend.model.User;
+import com.farmify.backend.service.BookingService;
+
 import java.sql.Date;
 
 import java.util.List;

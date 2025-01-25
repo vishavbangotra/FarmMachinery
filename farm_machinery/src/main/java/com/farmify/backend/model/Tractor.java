@@ -1,4 +1,4 @@
-package com.farmify.farm_machinery.model;
+package com.farmify.backend.model;
 
 import jakarta.persistence.Entity;
 
