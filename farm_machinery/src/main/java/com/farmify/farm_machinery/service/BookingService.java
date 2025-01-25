@@ -34,6 +34,7 @@ public class BookingService {
         // Create booking
         Booking booking = new Booking();
         booking.setCustomer(customer);
+        
         // booking.setMachine(machineryType);
         booking.setStartDate(startDate);
         booking.setEndDate(endDate);
