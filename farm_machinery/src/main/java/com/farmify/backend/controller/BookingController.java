@@ -1,18 +1,11 @@
 package com.farmify.backend.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.farmify.backend.model.Booking;
-import com.farmify.backend.model.BookingStatus;
-import com.farmify.backend.model.User;
 import com.farmify.backend.service.BookingService;
 
 import java.sql.Date;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/booking")

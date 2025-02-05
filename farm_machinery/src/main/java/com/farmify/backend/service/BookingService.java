@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 
 import com.farmify.backend.model.Booking;
 import com.farmify.backend.model.BookingStatus;
-import com.farmify.backend.model.Machinery;
 import com.farmify.backend.model.User;
 import com.farmify.backend.repository.BookingRepository;
 import com.farmify.backend.repository.UserRepository;
@@ -30,7 +29,7 @@ public class BookingService {
         }
 
         // Find nearby owners
-        List<User> nearbyOwners = userRepository.findNearbyOwners(machineryType, latitude, longitude, radius);
+        List<User> nearbyOwners = userRepository.findUsersByLocationAndMachineType(latitude, longitude, radius, machineryType);
 
         // Create booking
         Booking booking = new Booking();

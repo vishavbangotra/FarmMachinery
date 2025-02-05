@@ -1,53 +1,54 @@
 package com.farmify.backend.model;
 
-import jakarta.persistence.Entity;
-import java.util.List;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
+@Table(name = "users")
 public class User {
+
     @Id
-    private String phone;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id; // Use a generated ID as the primary key
+
+    @NotBlank(message = "Name is required")
+    @Size(max = 100, message = "Name must be less than 100 characters")
     private String name;
 
+    @NotBlank(message = "Phone number is required")
+    @Size(max = 15, message = "Phone number must be less than 15 characters")
+    @Column(unique = true) // Ensure phone numbers are unique
+    private String phone;
+
+    @NotNull(message = "Latitude is required")
     private Double latitude;
+
+    @NotNull(message = "Longitude is required")
     private Double longitude;
 
-    @OneToMany(mappedBy = "owner")
-    private List<Machinery> machineryOwned;
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ToString.Exclude // Avoid circular reference in toString
+    @EqualsAndHashCode.Exclude // Avoid circular reference in equals/hashCode
+    private List<Machinery> machineryOwned = new ArrayList<>(); // Initialize the list
 
-    public String getName() {
-        return name;
+    // Add a convenience method to add machinery
+    public void addMachinery(Machinery machinery) {
+        machineryOwned.add(machinery);
+        machinery.setOwner(this);
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public Double getLatitude() {
-        return latitude;
-    }
-
-    public void setLatitude(Double latitude) {
-        this.latitude = latitude;
-    }
-
-    public Double getLongitude() {
-        return longitude;
-    }   
-
-    public void setLongitude(Double longitude) {
-        this.longitude = longitude;
+    // Add a convenience method to remove machinery
+    public void removeMachinery(Machinery machinery) {
+        machineryOwned.remove(machinery);
+        machinery.setOwner(null);
     }
 }
