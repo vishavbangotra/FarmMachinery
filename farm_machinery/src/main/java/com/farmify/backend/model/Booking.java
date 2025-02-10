@@ -1,110 +1,58 @@
 package com.farmify.backend.model;
 
 import jakarta.persistence.*;
-import java.sql.Date;
-import java.util.List;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "bookings")
+@Data
 public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Machine associated with the booking
-    @ManyToOne
-    @JoinColumn(name = "machine_id", nullable = false)
-    private Machinery machine;
+    @NotNull(message = "Start time is required")
+    @Column(nullable = false)
+    private LocalDateTime startTime;
 
-    // Owner of the machine
-    @ManyToOne
+    @NotNull(message = "End time is required")
+    @Column(nullable = false)
+    private LocalDateTime endTime;
+
+    @NotNull(message = "Total cost is required")
+    @Column(nullable = false)
+    private Double totalCost;
+
+    @NotNull(message = "Booking status is required")
+    @Column(nullable = false)
+    private String status; // e.g., PENDING, CONFIRMED, COMPLETED, CANCELLED
+
+    @NotNull(message = "Machinery is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "machinery_id", nullable = false)
+    private Machinery machinery;
+
+    @NotNull(message = "Renter is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "renter_id", nullable = false)
+    private User renter;
+
+    @NotNull(message = "Owner is required")
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
-    // Customer making the booking request
-    @ManyToOne
-    @JoinColumn(name = "customer_id", nullable = false)
-    private User customer;
+    // Additional fields (optional)
+    private String paymentTransactionId; // For payment integration
+    private String notes; // Additional notes from renter or owner
 
-    // Start and end dates for the booking
-    @Column(nullable = false)
-    private Date startDate;
-
-    @Column(nullable = false)
-    private Date endDate;
-
-    // Status of the booking
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private BookingStatus status;
-
-    // List of owners notified for the request
-    @ManyToMany
-    @JoinTable(name = "booking_requested_owners", joinColumns = @JoinColumn(name = "booking_id"), inverseJoinColumns = @JoinColumn(name = "owner_id"))
-    private List<User> requestedOwners;
-
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Machinery getMachine() {
-        return machine;
-    }
-
-    public void setMachine(Machinery machine) {
-        this.machine = machine;
-    }
-
-    public User getOwner() {
-        return owner;
-    }
-
-    public void setOwner(User owner) {
-        this.owner = owner;
-    }
-
-    public User getCustomer() {
-        return customer;
-    }
-
-    public void setCustomer(User customer) {
-        this.customer = customer;
-    }
-
-    public Date getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(Date startDate) {
-        this.startDate = startDate;
-    }
-
-    public Date getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(Date endDate) {
-        this.endDate = endDate;
-    }
-
-    public BookingStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(BookingStatus status) {
-        this.status = status;
-    }
-
-    public List<User> getRequestedOwners() {
-        return requestedOwners;
-    }
-
-    public void setRequestedOwners(List<User> requestedOwners) {
-        this.requestedOwners = requestedOwners;
+    // Convenience method to calculate total cost
+    public void calculateTotalCost(double hourlyRate) {
+        long hours = java.time.Duration.between(startTime, endTime).toHours();
+        this.totalCost = hourlyRate * hours;
     }
 }
