@@ -4,6 +4,8 @@ import PhoneInput from "react-native-phone-number-input";
 import { router } from "expo-router";
 import { auth } from "../../../constants/firebaseConfig";
 import { signInWithPhoneNumber } from "firebase/auth";
+import { useRef } from "react";
+
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState("");
