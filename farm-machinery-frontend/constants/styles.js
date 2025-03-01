@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 // constants.js
 export const COLORS = {
   PRIMARY: "rgb(76, 175, 80)", // Vibrant green for buttons and primary actions
@@ -24,6 +26,8 @@ export const SIZES = {
   MARGIN_LARGE: 20, // Large margin for sections
 };
 
+// Define fonts in constants/styles.js
 export const FONTS = {
-  BOLD: "bold", // Font weight for bold text
+  BOLD: Platform.OS === "ios" ? "HelveticaNeue-Bold" : "Roboto-Bold",
+  REGULAR: Platform.OS === "ios" ? "Helvetica Neue" : "Roboto",
 };

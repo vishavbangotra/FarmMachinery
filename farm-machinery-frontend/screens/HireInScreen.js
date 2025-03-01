@@ -1,19 +1,37 @@
 // screens/HireInScreen.js
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, StyleSheet, Platform } from "react-native";
-import { COLORS, SIZES, FONTS } from "../constants/styles";
+import { COLORS, SIZES, FONTS } from "../constants/styles"; // Assuming constants are defined
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Picker } from "@react-native-picker/picker"; // Updated import
+import { Picker } from "@react-native-picker/picker";
 
 const HireInScreen = () => {
+  const [selectedMachineValue, setSelectedMachineValue] = useState("tractor");
+
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>I am looking for a..</Text>
+      <Text style={styles.title}>Farm Operation</Text>
       <View style={styles.pickerContainer}>
         <Picker
-          selectedValue={""}
+          selectedValue={selectedMachineValue}
           style={styles.picker}
-          onValueChange={(itemValue, itemIndex) => console.log(itemValue)}
+          onValueChange={(itemValue) => setSelectedMachineValue(itemValue)}
+          itemStyle={styles.pickerItem}
+        >
+          <Picker.Item label="Tractor" value="tractor" />
+          <Picker.Item label="Combine" value="combine" />
+          <Picker.Item label="Drone" value="drone" />
+        </Picker>
+      </View>
+      <Text style={[styles.title, { marginTop: SIZES.MARGIN_LARGE }]}>
+        Machinery
+      </Text>
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedMachineValue}
+          style={styles.picker}
+          onValueChange={(itemValue) => setSelectedMachineValue(itemValue)}
+          itemStyle={styles.pickerItem}
         >
           <Picker.Item label="Tractor" value="tractor" />
           <Picker.Item label="Combine" value="combine" />
@@ -28,24 +46,32 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
-    padding: 10,
-    alignItems: "center", // Center items for better layout
+    padding: SIZES.PADDING,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: SIZES.TITLE,
-    fontWeight: FONTS.BOLD,
+    fontFamily: FONTS.BOLD, // Modern bold font
     color: COLORS.TERTIARY,
-    marginBottom: 20, // Add spacing below the title
+    marginBottom: SIZES.MARGIN_LARGE
   },
   pickerContainer: {
-    width: "80%", // Control the width of the picker
-    backgroundColor: COLORS.PRIMARY, // Background for visibility
-    borderRadius: SIZES.BORDER_RADIUS, // Rounded corners
-    overflow: "hidden", // Prevent overflow issues
+    width: "80%",
+    height: Platform.OS === "ios" ? 200 : 50,
+    backgroundColor: COLORS.INPUT_BG,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    borderRadius: SIZES.BORDER_RADIUS,
   },
   picker: {
-    height: Platform.OS === "ios" ? 200 : 50, // Adjust height for iOS
-    width: "100%", // Full width within container
+    width: "100%",
+    height: "100%",
+  },
+  pickerItem: {
+    color: COLORS.TEXT,
+    fontSize: SIZES.INFO_TEXT,
+    fontFamily: FONTS.REGULAR, // Modern regular font
   },
 });
 
