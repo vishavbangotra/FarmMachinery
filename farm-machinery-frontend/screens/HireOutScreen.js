@@ -1,13 +1,26 @@
 // screens/Home.js
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, SafeAreaView } from "react-native";
 import { COLORS, SIZES, FONTS } from "../constants/styles";
+import { FlatList } from "react-native-gesture-handler";
+import Tile from "../components/Tile";
 
-const HireOutScreen = () => {
+const HireOutScreen = ({ navigation r}) => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to AgriTech Hire Out</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <Tile
+        title="Add Machinery"
+        description="Add a new machinery to your farm"
+        icon={<Text>🚜</Text>}
+        onPress={() => navigation.navigate("AddMachinery")}
+      />
+      <Tile
+        title="Manage Machinery"
+        description="Manage your farm machinery"
+        icon={<Text>🔧</Text>}
+        onPress={() => navigation.navigate("ManageMachinery")}
+      />
+    </SafeAreaView>
   );
 };
 
