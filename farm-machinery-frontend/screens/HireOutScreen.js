@@ -5,7 +5,7 @@ import { COLORS, SIZES, FONTS } from "../constants/styles";
 import { FlatList } from "react-native-gesture-handler";
 import Tile from "../components/Tile";
 
-const HireOutScreen = ({ navigation r}) => {
+const HireOutScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <Tile
