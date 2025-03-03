@@ -1,104 +1,151 @@
+// screens/AddMachineryScreen.js
 import React, { useState } from "react";
-import { StyleSheet, Text, View, FlatList, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
+import { COLORS, SIZES, FONTS } from "../constants/styles";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { COLORS, SIZES, FONTS } from "../constants/styles"; // Adjust the import path as necessary
+import { useNavigation } from "@react-navigation/native";
 
-// MachineryTile Component
-const MachineryTile = ({ machinery, isSelected, onPress }) => {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.tile, isSelected && styles.tileSelected]}
-    >
-      <Text style={styles.tileText}>{machinery.name}</Text>
-    </Pressable>
-  );
-};
+// Sample machine data with title and description
+const MACHINES = [
+  {
+    id: "tractor",
+    title: "Tractor",
+    description: "Versatile for plowing and towing",
+  },
+  {
+    id: "combine",
+    title: "Combine",
+    description: "Harvests crops efficiently",
+  },
+  {
+    id: "drone",
+    title: "Drone",
+    description: "Precision farming and monitoring",
+  },
+];
 
-const AddMachineryScreen = () => {
-  // Dummy machinery data
-  const machineryData = [
-    { id: "1", name: "Tractor" },
-    { id: "2", name: "Harvester" },
-    { id: "3", name: "Plow" },
-    { id: "4", name: "Seeder" },
-    { id: "5", name: "Sprayer" },
-    { id: "6", name: "Baler" },
-  ];
+const AddMachineryScreen = ({ navigation }) => {
+  const [selectedMachineId, setSelectedMachineId] = useState("tractor");
 
-  // State to track the selected machinery
-  const [selectedId, setSelectedId] = useState(null);
+  const handleNextPress = () => {
+    const selectedMachine = MACHINES.find(
+      (machine) => machine.id === selectedMachineId
+    );
+    navigation.navigate("AddMachineryDetailScreen", {
+      machineryTitle: selectedMachine.title,
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <FlatList
-        data={machineryData}
-        numColumns={2}
-        renderItem={({ item }) => (
-          <MachineryTile
-            machinery={item}
-            isSelected={item.id === selectedId}
-            onPress={() => setSelectedId(item.id)}
-          />
-        )}
-        keyExtractor={(item) => item.id}
-      />
-      <View style={styles.buttonContainer}>
-        <Pressable
-          onPress={
-            selectedId
-              ? () => console.log("Next pressed with", selectedId)
-              : null
-          }
-          style={[
-            styles.nextButton,
-            { backgroundColor: selectedId ? COLORS.PRIMARY : "gray" },
-          ]}
-        >
-          <Text style={styles.nextButtonText}>Next</Text>
-        </Pressable>
-      </View>
+      <Text style={styles.header}>Select Your Machinery</Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {MACHINES.map((machine) => (
+          <TouchableOpacity
+            key={machine.id}
+            style={[
+              styles.tile,
+              selectedMachineId === machine.id && styles.selectedTile,
+            ]}
+            onPress={() => setSelectedMachineId(machine.id)}
+          >
+            <Text
+              style={[
+                styles.tileTitle,
+                selectedMachineId === machine.id && styles.selectedTileTitle,
+              ]}
+            >
+              {machine.title}
+            </Text>
+            <Text
+              style={[
+                styles.tileDescription,
+                selectedMachineId === machine.id &&
+                  styles.selectedTileDescription,
+              ]}
+            >
+              {machine.description}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      <TouchableOpacity style={styles.nextButton} onPress={handleNextPress}>
+        <Text style={styles.nextButtonText}>Next</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
-export default AddMachineryScreen;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.BACKGROUND,
+    padding: SIZES.PADDING,
+  },
+  header: {
+    fontSize: SIZES.TITLE,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.TERTIARY,
+    marginBottom: SIZES.MARGIN_LARGE,
+    textAlign: "center",
+  },
+  scrollContainer: {
+    paddingBottom: SIZES.MARGIN_LARGE,
   },
   tile: {
-    backgroundColor: COLORS.INPUT_BG || "#f5f5f5", // Fallback color if constants are unavailable
+    backgroundColor: COLORS.INPUT_BG,
     borderWidth: 1,
-    borderColor: COLORS.BORDER || "#ccc",
-    borderRadius: SIZES.BORDER_RADIUS || 8,
-    padding: 20,
-    margin: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
+    borderColor: COLORS.BORDER,
+    borderRadius: SIZES.BORDER_RADIUS,
+    padding: SIZES.MARGIN_MEDIUM,
+    marginBottom: SIZES.MARGIN_MEDIUM,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  tileSelected: {
-    borderColor: COLORS.PRIMARY || "#00cc00", // Fallback to green if PRIMARY is unavailable
+  selectedTile: {
+    borderColor: COLORS.PRIMARY,
+    backgroundColor: `${COLORS.PRIMARY}20`,
   },
-  tileText: {
-    fontSize: SIZES.BUTTON_TEXT || 16,
-    fontFamily: FONTS.BOLD || "Arial", // Fallback font
-    color: COLORS.TEXT || "#333",
+  tileTitle: {
+    fontSize: SIZES.BUTTON_TEXT,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.TEXT,
+    marginBottom: SIZES.MARGIN_SMALL,
   },
-  buttonContainer: {
-    padding: 10,
+  selectedTileTitle: {
+    color: COLORS.INPUT_BG,
+  },
+  tileDescription: {
+    fontSize: SIZES.INFO_TEXT,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.PLACEHOLDER,
+    fontWeight: "bold",
+  },
+  selectedTileDescription: {
+    color: COLORS.TERTIARY,
   },
   nextButton: {
-    padding: 15,
+    backgroundColor: COLORS.PRIMARY,
+    paddingVertical: SIZES.MARGIN_MEDIUM,
+    paddingHorizontal: SIZES.PADDING,
+    borderRadius: SIZES.BORDER_RADIUS,
     alignItems: "center",
-    margin: 20,
-    borderRadius: SIZES.BORDER_RADIUS || 8,
+    marginTop: SIZES.MARGIN_LARGE,
   },
   nextButtonText: {
-    color: "white",
-    fontSize: SIZES.BUTTON_TEXT || 16,
-    fontFamily: FONTS.BOLD || "Arial",
+    fontSize: SIZES.BUTTON_TEXT,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.INPUT_BG,
   },
 });
+
+export default AddMachineryScreen;
