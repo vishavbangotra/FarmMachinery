@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons"; // Assuming Expo is used
 import HireInScreen from "../screens/HireInScreen";
 import HireOutNavigator from "./HireOutNavigator";
+import HireInNavigator from "./HireInNavigator";
 import { COLORS } from "../constants/styles"; // Assuming constants are in a separate file
 
 const Tab = createBottomTabNavigator();
@@ -31,7 +32,7 @@ const AppNavigator = () => {
     >
       <Tab.Screen
         name="Hire In"
-        component={HireInScreen}
+        component={HireInNavigator}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bus-sharp" color={color} size={size} />

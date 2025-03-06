@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { COLORS, SIZES, FONTS } from "../constants/styles";
+import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 
@@ -50,24 +50,24 @@ const AddMachineryScreen = ({ navigation }) => {
           <TouchableOpacity
             key={machine.id}
             style={[
-              styles.tile,
-              selectedMachineId === machine.id && styles.selectedTile,
+              GLOBAL_STYLES.tile,
+              selectedMachineId === machine.id && GLOBAL_STYLES.selectedTile,
             ]}
             onPress={() => setSelectedMachineId(machine.id)}
           >
             <Text
               style={[
-                styles.tileTitle,
-                selectedMachineId === machine.id && styles.selectedTileTitle,
+                GLOBAL_STYLES.tileTitle,
+                selectedMachineId === machine.id && GLOBAL_STYLES.selectedTileTitle,
               ]}
             >
               {machine.title}
             </Text>
             <Text
               style={[
-                styles.tileDescription,
+                GLOBAL_STYLES.tileDescription,
                 selectedMachineId === machine.id &&
-                  styles.selectedTileDescription,
+                  GLOBAL_STYLES.selectedTileDescription,
               ]}
             >
               {machine.description}
@@ -97,41 +97,6 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     paddingBottom: SIZES.MARGIN_LARGE,
-  },
-  tile: {
-    backgroundColor: COLORS.INPUT_BG,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    borderRadius: SIZES.BORDER_RADIUS,
-    padding: SIZES.MARGIN_MEDIUM,
-    marginBottom: SIZES.MARGIN_MEDIUM,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  selectedTile: {
-    borderColor: COLORS.PRIMARY,
-    backgroundColor: `${COLORS.PRIMARY}20`,
-  },
-  tileTitle: {
-    fontSize: SIZES.BUTTON_TEXT,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.TEXT,
-    marginBottom: SIZES.MARGIN_SMALL,
-  },
-  selectedTileTitle: {
-    color: COLORS.INPUT_BG,
-  },
-  tileDescription: {
-    fontSize: SIZES.INFO_TEXT,
-    fontFamily: FONTS.REGULAR,
-    color: COLORS.PLACEHOLDER,
-    fontWeight: "bold",
-  },
-  selectedTileDescription: {
-    color: COLORS.TERTIARY,
   },
   nextButton: {
     backgroundColor: COLORS.PRIMARY,

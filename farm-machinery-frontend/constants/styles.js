@@ -31,3 +31,52 @@ export const FONTS = {
   BOLD: Platform.OS === "ios" ? "HelveticaNeue-Bold" : "Roboto-Bold",
   REGULAR: Platform.OS === "ios" ? "Helvetica Neue" : "Roboto",
 };
+
+export const GLOBAL_STYLES = {
+  header: {
+    fontSize: SIZES.TITLE,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.TERTIARY,
+    marginBottom: SIZES.MARGIN_LARGE,
+    textAlign: "center",
+  },
+  tile: {
+    backgroundColor: COLORS.INPUT_BG,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    borderRadius: SIZES.BORDER_RADIUS,
+    padding: SIZES.MARGIN_MEDIUM,
+    marginBottom: SIZES.MARGIN_MEDIUM,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  selectedTile: {
+    borderColor: COLORS.PRIMARY,
+    backgroundColor: `${COLORS.PRIMARY}20`,
+  },
+  tileTitle: {
+    fontSize: SIZES.BUTTON_TEXT,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.TEXT,
+    marginBottom: SIZES.MARGIN_SMALL,
+  },
+  selectedTileTitle: {
+    color: COLORS.INPUT_BG,
+  },
+  tileDescription: {
+    fontSize: SIZES.INFO_TEXT,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.PLACEHOLDER,
+    fontWeight: "bold",
+  },
+  selectedTileDescription: {
+    color: COLORS.TERTIARY,
+  },
+};
+
+
+
+  

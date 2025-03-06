@@ -1,9 +1,9 @@
 // screens/Home.js
 import React from "react";
 import { View, Text, StyleSheet, SafeAreaView } from "react-native";
-import { COLORS, SIZES, FONTS } from "../constants/styles";
+import { COLORS, SIZES, FONTS } from "../../constants/styles";
 import { FlatList } from "react-native-gesture-handler";
-import Tile from "../components/Tile";
+import Tile from "../../components/Tile";
 
 const HireOutScreen = ({ navigation }) => {
   return (

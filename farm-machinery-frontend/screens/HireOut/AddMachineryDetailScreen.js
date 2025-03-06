@@ -1,11 +1,11 @@
 // screens/AddMachineryDetailScreen.js
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { COLORS, SIZES, FONTS } from "../constants/styles";
+import { COLORS, SIZES, FONTS } from "../../constants/styles";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AddTractorForm from "../components/AddTractorForm";
-import AddCombineForm from "../components/AddCombineForm";
-import AddDroneForm from "../components/AddDroneForm";
+import AddTractorForm from "../../components/AddTractorForm";
+import AddCombineForm from "../../components/AddCombineForm";
+import AddDroneForm from "../../components/AddDroneForm";
 
 const AddMachineryDetailScreen = ({ route }) => {
   const { machineryTitle } = route.params;
