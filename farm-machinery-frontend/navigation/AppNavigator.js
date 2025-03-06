@@ -13,16 +13,16 @@ const AppNavigator = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: COLORS.TERTIARY, // Green for active tab
-        tabBarInactiveTintColor: COLORS.PRIMARY, // Ensure this contrasts with BACKGROUND
+        tabBarActiveTintColor: COLORS.SECONDARY, // Green for active tab
+        tabBarInactiveTintColor: 'grey', // Ensure this contrasts with BACKGROUND
         tabBarStyle: {
-          backgroundColor: COLORS.BACKGROUND,
+          // backgroundColor: COLORS.BACKGROUND,
           height: 60,
           elevation: 4, // Shadow for Android
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
+          // shadowColor: "#000",
+          // shadowOffset: { width: 0, height: -2 },
+          // shadowOpacity: 0.1,
+          // shadowRadius: 4,
         },
         tabBarLabelStyle: {
           fontSize: 12, // Adjust as needed

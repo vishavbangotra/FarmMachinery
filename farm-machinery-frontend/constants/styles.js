@@ -28,8 +28,8 @@ export const SIZES = {
 
 // Define fonts in constants/styles.js
 export const FONTS = {
-  BOLD: Platform.OS === "ios" ? "HelveticaNeue-Bold" : "Roboto-Bold",
   REGULAR: Platform.OS === "ios" ? "Helvetica Neue" : "Roboto",
+  MEDIUM: Platform.OS === "ios" ? "HelveticaNeue-Medium" : "Roboto-Medium",
 };
 
 export const GLOBAL_STYLES = {
