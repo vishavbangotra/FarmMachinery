@@ -7,8 +7,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles"; // Adjust the import path as necessary
-
-const operations = ["Plowing", "Seeding", "Harvesting"];
+import {OPERATIONS} from "../../Info/MachineryInfo"; // Adjust the import path as necessary
+const operations = Object.keys(OPERATIONS)
 
 const OperationScreen = ({ navigation }) => {
   const [selectedOperation, setSelectedOperation] = useState(null);
@@ -26,7 +26,15 @@ const OperationScreen = ({ navigation }) => {
             ]}
             onPress={() => setSelectedOperation(item)}
           >
-            <Text style={[GLOBAL_STYLES.tileTitle, {padding: 8} ,selectedOperation === item && GLOBAL_STYLES.selectedTileTitle]}>{item}</Text>
+            <Text
+              style={[
+                GLOBAL_STYLES.tileTitle,
+                { padding: 8 },
+                selectedOperation === item && GLOBAL_STYLES.selectedTileTitle,
+              ]}
+            >
+              {item}
+            </Text>
           </TouchableOpacity>
         )}
         keyExtractor={(item) => item}
@@ -51,33 +59,12 @@ const styles = StyleSheet.create({
     padding: SIZES.PADDING, // 20
     backgroundColor: COLORS.BACKGROUND, // rgb(245, 246, 241)
   },
-  title: {
-    fontSize: SIZES.TITLE, // 32
-    fontFamily: FONTS.BOLD, // Platform-specific bold font
-    color: COLORS.TEXT, // rgb(51, 51, 51)
-    marginBottom: SIZES.MARGIN_LARGE, // 20
-  },
-  item: {
-    padding: SIZES.PADDING, // 20
-    backgroundColor: COLORS.INPUT_BG, // rgb(255, 255, 255)
-    marginBottom: SIZES.MARGIN_MEDIUM, // 10
-    borderRadius: SIZES.BORDER_RADIUS, // 8
-    borderWidth: 1,
-    borderColor: COLORS.BORDER, // rgb(164, 191, 166)
-  },
-  selectedItem: {
-    borderColor: COLORS.PRIMARY, // rgb(76, 175, 80)
-  },
-  itemText: {
-    fontSize: SIZES.INFO_TEXT, // 16
-    fontFamily: FONTS.REGULAR, // Platform-specific regular font
-    color: COLORS.TEXT, // rgb(51, 51, 51)
-  },
   button: {
     backgroundColor: COLORS.PRIMARY, // rgb(76, 175, 80)
     padding: SIZES.PADDING, // 20
     borderRadius: SIZES.BORDER_RADIUS, // 8
     alignItems: "center",
+    marginTop: 20,
   },
   buttonDisabled: {
     backgroundColor: COLORS.PLACEHOLDER, // rgb(138, 154, 134)

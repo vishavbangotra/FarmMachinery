@@ -9,7 +9,7 @@ const DistanceSliderScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={GLOBAL_STYLES.header}>Set Distance for {machinery}</Text>
+      <Text style={GLOBAL_STYLES.header}>Search Distance</Text>
       <Text style={styles.distanceText}>{distance} km</Text>
       <Slider
         style={styles.slider}
@@ -25,7 +25,10 @@ const DistanceSliderScreen = ({ navigation, route }) => {
       <TouchableOpacity
         style={styles.button}
         onPress={() => {
-          alert(`Distance set to ${distance} km for ${machinery}`);
+          navigation.navigate("MachinerySearch", {
+            machinery,
+            distance,
+          });
         }}
       >
         <Text style={styles.buttonText}>Confirm</Text>

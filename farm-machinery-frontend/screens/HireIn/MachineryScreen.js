@@ -7,19 +7,13 @@ import {
   StyleSheet,
 } from "react-native";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles"; // Adjust the import path as necessary
-
-const machinery = [
-  "Tractor",
-  "Harvester",
-  "Plow",
-  "Seeder",
-  "Sprayer",
-  "Baler",
-];
+import { OPERATIONS } from "../../Info/MachineryInfo";
 
 const MachineryScreen = ({ navigation, route }) => {
   const [selectedMachinery, setSelectedMachinery] = useState(null);
   const { operation } = route.params;
+
+  const machinery = OPERATIONS[operation];
 
   return (
     <View style={styles.container}>
