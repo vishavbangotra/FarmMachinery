@@ -2,14 +2,14 @@ import { Platform } from "react-native";
 
 // constants.js
 export const COLORS = {
-  PRIMARY: "rgb(76, 175, 80)", // Vibrant green for buttons and primary actions
-  SECONDARY: "rgb(46, 125, 50)", // Darker green for text and accents
-  TERTIARY: "rgb(36, 97, 39)", // Darker version of secondary
-  BACKGROUND: "rgb(245, 246, 241)", // Light earthy background
-  INPUT_BG: "rgb(255, 255, 255)", // White background for inputs
-  BORDER: "rgb(164, 191, 166)", // Subtle green border
-  PLACEHOLDER: "rgb(138, 154, 134)", // Gray-green for placeholder text
-  TEXT: "rgb(51, 51, 51)", // Dark gray for input text
+  PRIMARY: "#024034",
+  SECONDARY: "#72BF4E",
+  TERTIARY: "#F2A81D",
+  BACKGROUND: "#F2EDE9",
+  INPUT_BG: "#87A668",
+  BORDER: "PRIMARY",
+  PLACEHOLDER: "rgb(138, 154, 134)",
+  TEXT: "rgb(51, 51, 51)",
 };
 
 export const SIZES = {
@@ -33,6 +33,13 @@ export const FONTS = {
 };
 
 export const GLOBAL_STYLES = {
+  button: {
+    backgroundColor: COLORS.PRIMARY,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 16,
+  },
   header: {
     fontSize: SIZES.TITLE,
     fontFamily: FONTS.BOLD,
@@ -41,7 +48,7 @@ export const GLOBAL_STYLES = {
     textAlign: "center",
   },
   tile: {
-    backgroundColor: COLORS.INPUT_BG,
+    backgroundColor: COLORS.SECONDARY,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
     borderRadius: SIZES.BORDER_RADIUS,
@@ -55,7 +62,7 @@ export const GLOBAL_STYLES = {
   },
   selectedTile: {
     borderColor: COLORS.PRIMARY,
-    backgroundColor: `${COLORS.PRIMARY}20`,
+    backgroundColor: `${COLORS.TERTIARY}20`,
   },
   tileTitle: {
     fontSize: SIZES.BUTTON_TEXT,
@@ -64,12 +71,12 @@ export const GLOBAL_STYLES = {
     marginBottom: SIZES.MARGIN_SMALL,
   },
   selectedTileTitle: {
-    color: COLORS.INPUT_BG,
+    color: COLORS.PRIMARY,
   },
   tileDescription: {
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.REGULAR,
-    color: COLORS.PLACEHOLDER,
+    color: COLORS.PRIMARY,
     fontWeight: "bold",
   },
   selectedTileDescription: {

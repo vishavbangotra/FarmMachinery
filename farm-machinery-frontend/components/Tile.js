@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { COLORS, SIZES, FONTS } from "../constants/styles"; // Adjust the import path as necessary
+import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../constants/styles"; // Adjust the import path as necessary
 
 const Tile = ({ title, description, icon, onPress }) => {
   return (
@@ -13,7 +13,7 @@ const Tile = ({ title, description, icon, onPress }) => {
       <View style={styles.iconContainer}>{icon}</View>
       <View style={styles.textContainer}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <Text style={GLOBAL_STYLES.tileDescription}>{description}</Text>
       </View>
     </Pressable>
   );
@@ -23,13 +23,13 @@ const styles = StyleSheet.create({
   tile: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.INPUT_BG, // White background
+    backgroundColor: COLORS.SECONDARY, 
     borderWidth: 1,
-    borderColor: COLORS.BORDER, // Subtle green border
-    borderRadius: SIZES.BORDER_RADIUS, // Rounded corners
-    padding: SIZES.PADDING, // Consistent padding
-    width: "95%", // 80% of the screen width
-    marginVertical: SIZES.MARGIN_SMALL, // Small vertical spacing between tiles
+    borderColor: COLORS.BORDER, 
+    borderRadius: SIZES.BORDER_RADIUS, 
+    padding: SIZES.PADDING, 
+    width: "95%", 
+    marginVertical: SIZES.MARGIN_SMALL, 
   },
   tilePressed: {
     backgroundColor: "rgba(0, 0, 0, 0.05)", // Light gray when pressed
@@ -43,12 +43,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.BUTTON_TEXT, // 18, suitable for titles
     fontFamily: FONTS.BOLD, // Bold font for emphasis
-    color: COLORS.TEXT, // Dark gray text
-  },
-  description: {
-    fontSize: SIZES.INFO_TEXT, // 16, suitable for descriptions
-    fontFamily: FONTS.REGULAR, // Regular font for readability
-    color: COLORS.PLACEHOLDER, // Gray-green for less prominence
+    fontWeight: "bold", // Bold font for emphasis
+    color: COLORS.PRIMARY, // Dark gray text
   },
 });
 
