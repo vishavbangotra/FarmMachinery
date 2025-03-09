@@ -159,10 +159,10 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: CONSTANTS.COLORS.PRIMARY,
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 4,
   },
   buttonText: {
-    color: CONSTANTS.COLORS.WHITE,
+    color: CONSTANTS.COLORS.BACKGROUND,
     fontSize: CONSTANTS.SIZES.BUTTON,
     fontFamily: CONSTANTS.FONTS.REGULAR,
   },
