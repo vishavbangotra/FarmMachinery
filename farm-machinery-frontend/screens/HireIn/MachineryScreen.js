@@ -7,17 +7,16 @@ import {
   StyleSheet,
 } from "react-native";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles"; // Adjust the import path as necessary
-import { OPERATIONS } from "../../Info/MachineryInfo";
+import { MACHINERY} from "../../Info/MachineryInfo";
 
 const MachineryScreen = ({ navigation, route }) => {
   const [selectedMachinery, setSelectedMachinery] = useState(null);
-  const { operation } = route.params;
 
-  const machinery = OPERATIONS[operation];
+  const machinery = MACHINERY
 
   return (
     <View style={styles.container}>
-      <Text style={GLOBAL_STYLES.header}>Select Machinery for {operation}</Text>
+      <Text style={GLOBAL_STYLES.header}>Select Machinery for Hire</Text>
       <FlatList
         data={machinery}
         numColumns={2}
