@@ -14,7 +14,7 @@ const { width } = Dimensions.get("window");
 const OTP_BOX_WIDTH = width * 0.12;
 
 const LoginScreen = ({ setIsAuthenticated }) => {
-  const [countryCode, setCountryCode] = useState("+1");
+  const [countryCode, setCountryCode] = useState("+91");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isOtpSent, setIsOtpSent] = useState(false);
