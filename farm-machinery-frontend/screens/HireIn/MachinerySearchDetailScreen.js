@@ -1,6 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
-import DateTimePickerModal from "react-native-modal-datetime-picker";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+  Modal,
+  Button,
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
 
 const MachinerySearchDetailScreen = ({ route }) => {
@@ -10,17 +20,53 @@ const MachinerySearchDetailScreen = ({ route }) => {
   const [isStartPickerVisible, setStartPickerVisibility] = useState(false);
   const [isEndPickerVisible, setEndPickerVisibility] = useState(false);
 
-  const showStartPicker = () => setStartPickerVisibility(true);
+  const showStartPicker = () => {
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: startDate || new Date(),
+        onChange: (event, selectedDate) => {
+          if (selectedDate) {
+            setStartDate(selectedDate);
+          }
+        },
+        mode: "date",
+      });
+    } else {
+      setStartPickerVisibility(true);
+    }
+  };
+
   const hideStartPicker = () => setStartPickerVisibility(false);
-  const handleConfirmStart = (date) => {
-    setStartDate(date);
+
+  const handleConfirmStart = (selectedDate) => {
+    if (selectedDate) {
+      setStartDate(selectedDate);
+    }
     hideStartPicker();
   };
 
-  const showEndPicker = () => setEndPickerVisibility(true);
+  const showEndPicker = () => {
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        value: endDate || new Date(),
+        onChange: (event, selectedDate) => {
+          if (selectedDate) {
+            setEndDate(selectedDate);
+          }
+        },
+        mode: "date",
+      });
+    } else {
+      setEndPickerVisibility(true);
+    }
+  };
+
   const hideEndPicker = () => setEndPickerVisibility(false);
-  const handleConfirmEnd = (date) => {
-    setEndDate(date);
+
+  const handleConfirmEnd = (selectedDate) => {
+    if (selectedDate) {
+      setEndDate(selectedDate);
+    }
     hideEndPicker();
   };
 
@@ -54,24 +100,44 @@ const MachinerySearchDetailScreen = ({ route }) => {
           Start Date: {formatDate(startDate)}
         </Text>
       </TouchableOpacity>
-      <DateTimePickerModal
-        isVisible={isStartPickerVisible}
-        mode="date"
-        onConfirm={handleConfirmStart}
-        onCancel={hideStartPicker}
-      />
+
+      {Platform.OS === "ios" && (
+        <Modal visible={isStartPickerVisible} transparent={true}>
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <DateTimePicker
+              value={startDate || new Date()}
+              mode="date"
+              onChange={(event, selectedDate) =>
+                handleConfirmStart(selectedDate)
+              }
+            />
+            <Button title="Cancel" onPress={hideStartPicker} />
+          </View>
+        </Modal>
+      )}
 
       <TouchableOpacity style={styles.datePicker} onPress={showEndPicker}>
         <Text style={styles.datePickerText}>
           End Date: {formatDate(endDate)}
         </Text>
       </TouchableOpacity>
-      <DateTimePickerModal
-        isVisible={isEndPickerVisible}
-        mode="date"
-        onConfirm={handleConfirmEnd}
-        onCancel={hideEndPicker}
-      />
+
+      {Platform.OS === "ios" && (
+        <Modal visible={isEndPickerVisible} transparent={true}>
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+            <DateTimePicker
+              value={endDate || new Date()}
+              mode="date"
+              onChange={(event, selectedDate) => handleConfirmEnd(selectedDate)}
+            />
+            <Button title="Cancel" onPress={hideEndPicker} />
+          </View>
+        </Modal>
+      )}
 
       <TouchableOpacity style={styles.button} onPress={handleBookingRequest}>
         <Text style={styles.buttonText}>Send Booking Request</Text>
