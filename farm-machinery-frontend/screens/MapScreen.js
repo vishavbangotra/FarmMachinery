@@ -6,30 +6,30 @@ import {
   Modal,
   Text,
   TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { FAB, Button as PaperButton } from "react-native-paper";
-import { Picker } from "@react-native-picker/picker";
-import Icon from "react-native-vector-icons/FontAwesome"; // For icons (install: npm install react-native-vector-icons)
+import Icon from "react-native-vector-icons/FontAwesome";
+import { BottomSheet } from "react-native-btr";
 
 const MapScreen = ({ route, navigation }) => {
   const savedFarms = [
-      {
-        id: "1",
-        name: "Farm Jammu Auto",
-        location: { latitude: 32.7300307600586, longitude: 74.85615100711584 },
-      },
-    ];
-    const [farms, setFarms] = useState(savedFarms);
-    const onSelectFarm = (farm) => {
-      console.log("Selected farm:", farm);
-    };
-    const onAddFarm = async (farm) => {
-      const newFarm = { ...farm, id: Date.now().toString() };
-        setFarms([...farms, newFarm]);
-      return newFarm; // Simulate async save
-    };
+    {
+      id: "1",
+      name: "Farm Jammu Auto",
+      location: { latitude: 32.7300307600586, longitude: 74.85615100711584 },
+    },
+    {
+      id: "1742126686607",
+      location: { latitude: 32.72915219022547, longitude: 74.85791858285666 },
+      name: "Farm Jammu 2",
+    },
+  ];
+
+  const [farms, setFarms] = useState(savedFarms);
   const [region, setRegion] = useState(null);
   const [addingFarm, setAddingFarm] = useState(false);
   const [tempLocation, setTempLocation] = useState(null);
@@ -37,8 +37,25 @@ const MapScreen = ({ route, navigation }) => {
   const [farmName, setFarmName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFarm, setSelectedFarm] = useState(null);
+  const [showFarmList, setShowFarmList] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const mapRef = useRef(null);
 
+  // Set the first farm as selected by default and center the map on it
+  useEffect(() => {
+    if (farms.length > 0 && !selectedFarm) {
+      const defaultFarm = farms[0];
+      setSelectedFarm(defaultFarm);
+      setRegion({
+        latitude: defaultFarm.location.latitude,
+        longitude: defaultFarm.location.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    }
+  }, [farms, selectedFarm]);
+
+  // Initial location setup (only if no farms exist)
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -47,14 +64,39 @@ const MapScreen = ({ route, navigation }) => {
         return;
       }
       const location = await Location.getCurrentPositionAsync({});
-      setRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
+      if (farms.length === 0) {
+        setRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
     })();
   }, []);
+
+  const onSelectFarm = (farm) => {
+    setSelectedFarm(farm);
+    console.log("Selected farm:", farm);
+    setShowFarmList(false);
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: farm.location.latitude,
+          longitude: farm.location.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        1000
+      );
+    }
+  };
+
+  const onAddFarm = async (farm) => {
+    const newFarm = { ...farm, id: Date.now().toString() };
+    setFarms([...farms, newFarm]);
+    return newFarm;
+  };
 
   const handleMapPress = (e) => {
     if (addingFarm) {
@@ -63,10 +105,11 @@ const MapScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleMarkerPress = (farm) => {
+  const handleLongPress = (e) => {
     if (!addingFarm) {
-      setSelectedFarm(farm);
-      onSelectFarm(farm);
+      setAddingFarm(true);
+      setTempLocation(e.nativeEvent.coordinate);
+      setShowForm(true);
     }
   };
 
@@ -79,17 +122,16 @@ const MapScreen = ({ route, navigation }) => {
 
   const handleSaveFarm = async () => {
     if (farmName && tempLocation) {
+      setIsSaving(true);
       try {
         const newFarm = { name: farmName, location: tempLocation };
         const savedFarm = await onAddFarm(newFarm);
-        setSelectedFarm(savedFarm);
         onSelectFarm(savedFarm);
-        setAddingFarm(false);
-        setTempLocation(null);
-        setShowForm(false);
-        setFarmName("");
+        setIsSaving(false);
+        handleCancelAdd();
       } catch (error) {
         console.log("Error adding farm:", error);
+        setIsSaving(false);
       }
     }
   };
@@ -123,15 +165,18 @@ const MapScreen = ({ route, navigation }) => {
           style={styles.map}
           initialRegion={region}
           onPress={handleMapPress}
+          onLongPress={handleLongPress}
           provider="google"
         >
           {farms.map((farm) => (
             <Marker
-              key={farm.id}
+              key={`${farm.id}-${
+                selectedFarm?.id === farm.id ? "selected" : "default"
+              }`}
               coordinate={farm.location}
               title={farm.name}
-              onPress={() => handleMarkerPress(farm)}
-              pinColor={selectedFarm?.id === farm.id ? "#4CAF50" : "#F44336"}
+              onPress={() => onSelectFarm(farm)}
+              pinColor={selectedFarm?.id === farm.id ? "#4CAF50" : "#2196F3"}
             />
           ))}
           {tempLocation && (
@@ -144,7 +189,16 @@ const MapScreen = ({ route, navigation }) => {
         </MapView>
       )}
 
-      {/* Search Bar with Icon */}
+      {/* Display Selected Farm Name */}
+      {selectedFarm && (
+        <View style={styles.selectedFarmLabel}>
+          <Text style={styles.selectedFarmText}>
+            Selected: {selectedFarm.name}
+          </Text>
+        </View>
+      )}
+
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Icon name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput
@@ -156,50 +210,19 @@ const MapScreen = ({ route, navigation }) => {
         />
       </View>
 
-      {/* Picker with Styled Container */}
-      {!addingFarm && (
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedFarm?.id}
-            onValueChange={(itemValue) => {
-              if (itemValue) {
-                const farm = farms.find((f) => f.id === itemValue);
-                if (farm) {
-                  setSelectedFarm(farm);
-                  onSelectFarm(farm);
-                  if (mapRef.current) {
-                    mapRef.current.animateToRegion(
-                      {
-                        latitude: farm.location.latitude,
-                        longitude: farm.location.longitude,
-                        latitudeDelta: 0.01,
-                        longitudeDelta: 0.01,
-                      },
-                      1000
-                    );
-                  }
-                }
-              } else {
-                setSelectedFarm(null);
-              }
-            }}
-            style={styles.picker}
-          >
-            <Picker.Item label="Select a farm..." value={null} />
-            {farms.map((farm) => (
-              <Picker.Item key={farm.id} label={farm.name} value={farm.id} />
-            ))}
-          </Picker>
-        </View>
-      )}
-
-      {/* FABs with Elevation */}
+      {/* FABs */}
       <View style={styles.controlsContainer}>
         <FAB
           style={[styles.fab, { elevation: 4 }]}
           icon={addingFarm ? "close" : "plus"}
           label={addingFarm ? "Cancel" : "Add Farm"}
           onPress={() => (addingFarm ? handleCancelAdd() : setAddingFarm(true))}
+        />
+        <FAB
+          style={[styles.fab, { elevation: 4 }]}
+          icon="format-list-bulleted"
+          label="Farms"
+          onPress={() => setShowFarmList(true)}
         />
         {selectedFarm && (
           <FAB
@@ -213,13 +236,35 @@ const MapScreen = ({ route, navigation }) => {
         )}
       </View>
 
-      {/* Redesigned Modal */}
+      {/* Bottom Sheet for Farm Selection */}
+      <BottomSheet
+        visible={showFarmList}
+        onBackButtonPress={() => setShowFarmList(false)}
+        onBackdropPress={() => setShowFarmList(false)}
+      >
+        <View style={styles.bottomSheet}>
+          <Text style={styles.bottomSheetTitle}>Select a Farm</Text>
+          <ScrollView>
+            {farms.map((farm) => (
+              <TouchableOpacity
+                key={farm.id}
+                style={styles.farmItem}
+                onPress={() => onSelectFarm(farm)}
+              >
+                <Text style={styles.farmName}>{farm.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </BottomSheet>
+
+      {/* Modal for Adding Farm */}
       <Modal visible={showForm} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>New Farm Location</Text>
-              <TouchableOpacity onPress={() => setShowForm(false)}>
+              <TouchableOpacity onPress={handleCancelAdd}>
                 <Icon name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
@@ -235,10 +280,10 @@ const MapScreen = ({ route, navigation }) => {
               mode="contained"
               color="#4CAF50"
               onPress={handleSaveFarm}
-              disabled={!farmName.trim()}
+              disabled={!farmName.trim() || isSaving}
               style={styles.saveButton}
             >
-              Save Farm
+              {isSaving ? <ActivityIndicator color="#fff" /> : "Save Farm"}
             </PaperButton>
           </View>
         </View>
@@ -253,6 +298,22 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  selectedFarmLabel: {
+    position: "absolute",
+    top: 60,
+    left: 10,
+    right: 10,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderRadius: 8,
+    padding: 10,
+    elevation: 2,
+    zIndex: 1,
+  },
+  selectedFarmText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
   },
   searchContainer: {
     position: "absolute",
@@ -274,20 +335,6 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 16,
   },
-  pickerContainer: {
-    position: "absolute",
-    top: 60,
-    left: 10,
-    right: 10,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 8,
-    padding: 5,
-    elevation: 2,
-    zIndex: 1,
-  },
-  picker: {
-    height: 50,
-  },
   controlsContainer: {
     position: "absolute",
     bottom: 16,
@@ -299,6 +346,26 @@ const styles = StyleSheet.create({
   },
   nextFab: {
     backgroundColor: "#4CAF50",
+  },
+  bottomSheet: {
+    backgroundColor: "#fff",
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: 300,
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  farmItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  farmName: {
+    fontSize: 16,
   },
   modalOverlay: {
     flex: 1,
