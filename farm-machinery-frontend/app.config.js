@@ -1,4 +1,6 @@
-{
+import 'dotenv/config'
+
+export default {
   "expo": {
     "name": "farm-machinery-frontend",
     "slug": "farm-machinery-frontend",
@@ -15,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "config": {
-        "googleMapsApiKey": "AIzaSyCufHXRSp6bwiHTjLZN2qoRUKWRK8IpI04"
+        "googleMapsApiKey": process.env.GOOGLE_MAPS_API_KEY
       }
     },
     "android": {
@@ -25,7 +27,7 @@
       },
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyCufHXRSp6bwiHTjLZN2qoRUKWRK8IpI04"
+          "apiKey": process.env.GOOGLE_MAPS_API_KEY
         }
       }
     },
