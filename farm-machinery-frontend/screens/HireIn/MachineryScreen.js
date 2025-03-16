@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; // Add this import
 import {
   View,
   Text,
@@ -6,8 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles"; // Adjust the import path as necessary
-import { MACHINERY} from "../../Info/MachineryInfo";
+import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
+import MapScreen from "../MapScreen";
+import { MACHINERY } from "../../Info/MachineryInfo";
 
 const MachineryScreen = ({ navigation, route }) => {
   const [selectedMachinery, setSelectedMachinery] = useState(null);
@@ -44,8 +45,7 @@ const MachineryScreen = ({ navigation, route }) => {
         style={[styles.button, !selectedMachinery && styles.buttonDisabled]}
         onPress={() =>
           selectedMachinery &&
-          navigation.navigate("DistanceSlider", {
-            machinery: selectedMachinery,
+          navigation.navigate("Map", {
           })
         }
         disabled={!selectedMachinery}
