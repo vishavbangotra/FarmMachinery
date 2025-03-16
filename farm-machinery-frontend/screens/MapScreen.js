@@ -16,17 +16,14 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { BottomSheet } from "react-native-btr";
 import Slider from "@react-native-community/slider";
 
-// Placeholder for your app's constants (adjust the import path as needed)
+// App constants
 const COLORS = {
   PRIMARY: "#4CAF50",
   BORDER: "#ddd",
 };
-const SIZES = {};
-const FONTS = {};
-const GLOBAL_STYLES = {};
 
 const MapScreen = ({ route, navigation }) => {
-  // Sample farm data (replace with your actual data source)
+  // Sample farm data (replace with your data source)
   const savedFarms = [
     {
       id: "1",
@@ -35,8 +32,8 @@ const MapScreen = ({ route, navigation }) => {
     },
     {
       id: "1742126686607",
-      location: { latitude: 32.72915219022547, longitude: 74.85791858285666 },
       name: "Farm Jammu 2",
+      location: { latitude: 32.72915219022547, longitude: 74.85791858285666 },
     },
   ];
 
@@ -51,10 +48,10 @@ const MapScreen = ({ route, navigation }) => {
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [showFarmList, setShowFarmList] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [distance, setDistance] = useState(0); // Distance slider state
+  const [distance, setDistance] = useState(0);
   const mapRef = useRef(null);
 
-  // Set the first farm as selected by default and center the map on it
+  // Set default selected farm and center map on it
   useEffect(() => {
     if (farms.length > 0 && !selectedFarm) {
       const defaultFarm = farms[0];
@@ -68,7 +65,7 @@ const MapScreen = ({ route, navigation }) => {
     }
   }, [farms, selectedFarm]);
 
-  // Initial location setup (only if no farms exist)
+  // Request location permissions and set region if no farms exist
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -89,23 +86,21 @@ const MapScreen = ({ route, navigation }) => {
   }, []);
 
   // Handlers
-  const onSelectFarm = (farm) => {
+  const handleSelectFarm = (farm) => {
     setSelectedFarm(farm);
     setShowFarmList(false);
-    if (mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: farm.location.latitude,
-          longitude: farm.location.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        1000
-      );
-    }
+    mapRef.current?.animateToRegion(
+      {
+        latitude: farm.location.latitude,
+        longitude: farm.location.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      1000
+    );
   };
 
-  const onAddFarm = async (farm) => {
+  const handleAddFarm = async (farm) => {
     const newFarm = { ...farm, id: Date.now().toString() };
     setFarms([...farms, newFarm]);
     return newFarm;
@@ -138,8 +133,8 @@ const MapScreen = ({ route, navigation }) => {
       setIsSaving(true);
       try {
         const newFarm = { name: farmName, location: tempLocation };
-        const savedFarm = await onAddFarm(newFarm);
-        onSelectFarm(savedFarm);
+        const savedFarm = await handleAddFarm(newFarm);
+        handleSelectFarm(savedFarm);
         setIsSaving(false);
         handleCancelAdd();
       } catch (error) {
@@ -188,7 +183,7 @@ const MapScreen = ({ route, navigation }) => {
               }`}
               coordinate={farm.location}
               title={farm.name}
-              onPress={() => onSelectFarm(farm)}
+              onPress={() => handleSelectFarm(farm)}
               pinColor={selectedFarm?.id === farm.id ? "#4CAF50" : "#2196F3"}
             />
           ))}
@@ -244,7 +239,7 @@ const MapScreen = ({ route, navigation }) => {
         </View>
       )}
 
-      {/* Floating Action Buttons (FABs) */}
+      {/* Floating Action Buttons */}
       <View style={styles.controlsContainer}>
         <FAB
           style={[styles.fab, { elevation: 4 }]}
@@ -286,7 +281,7 @@ const MapScreen = ({ route, navigation }) => {
               <TouchableOpacity
                 key={farm.id}
                 style={styles.farmItem}
-                onPress={() => onSelectFarm(farm)}
+                onPress={() => handleSelectFarm(farm)}
               >
                 <Text style={styles.farmName}>{farm.name}</Text>
               </TouchableOpacity>
@@ -296,7 +291,7 @@ const MapScreen = ({ route, navigation }) => {
       </BottomSheet>
 
       {/* Modal for Adding a New Farm */}
-      <Modal visible={showForm} animationType="slide" transparent={true}>
+      <Modal visible={showForm} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -331,12 +326,8 @@ const MapScreen = ({ route, navigation }) => {
 
 // Styles
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  map: { flex: 1 },
   searchContainer: {
     position: "absolute",
     top: 10,
@@ -349,17 +340,11 @@ const styles = StyleSheet.create({
     padding: 5,
     elevation: 2,
   },
-  searchIcon: {
-    marginHorizontal: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    fontSize: 16,
-  },
+  searchIcon: { marginHorizontal: 10 },
+  searchInput: { flex: 1, height: 40, fontSize: 16 },
   topControlsContainer: {
     position: "absolute",
-    top: 70, // Adjust based on your search bar height
+    top: 70,
     left: 10,
     right: 10,
     backgroundColor: "rgba(255, 255, 255, 0.9)",
@@ -377,41 +362,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
-  checkIcon: {
-    marginRight: 5,
-  },
-  selectedFarmText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-  },
+  checkIcon: { marginRight: 5 },
+  selectedFarmText: { fontSize: 16, fontWeight: "bold", color: "#333" },
   distanceHeader: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#333",
     marginBottom: 5,
   },
-  distanceText: {
-    fontSize: 16,
-    color: "#333",
-    marginBottom: 5,
-  },
-  slider: {
-    width: "100%",
-    height: 40,
-  },
-  controlsContainer: {
-    position: "absolute",
-    bottom: 16,
-    right: 16,
-    gap: 8,
-  },
-  fab: {
-    backgroundColor: "#fff",
-  },
-  nextFab: {
-    backgroundColor: "#4CAF50",
-  },
+  distanceText: { fontSize: 16, color: "#333", marginBottom: 5 },
+  slider: { width: "100%", height: 40 },
+  controlsContainer: { position: "absolute", bottom: 16, right: 16, gap: 8 },
+  fab: { backgroundColor: "#fff" },
+  nextFab: { backgroundColor: "#4CAF50" },
   bottomSheet: {
     backgroundColor: "#fff",
     padding: 20,
@@ -419,19 +382,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     height: 300,
   },
-  bottomSheetTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  farmItem: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-  },
-  farmName: {
-    fontSize: 16,
-  },
+  bottomSheetTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
+  farmItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: "#ddd" },
+  farmName: { fontSize: 16 },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -451,14 +404,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 5,
-  },
+  modalTitle: { fontSize: 20, fontWeight: "bold" },
+  label: { fontSize: 16, marginBottom: 5 },
   input: {
     height: 50,
     borderColor: "#ddd",
@@ -469,9 +416,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "#fff",
   },
-  saveButton: {
-    marginTop: 10,
-  },
+  saveButton: { marginTop: 10 },
 });
 
 export default MapScreen;
