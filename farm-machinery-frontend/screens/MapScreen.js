@@ -14,8 +14,19 @@ import * as Location from "expo-location";
 import { FAB, Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { BottomSheet } from "react-native-btr";
+import Slider from "@react-native-community/slider";
+
+// Placeholder for your app's constants (adjust the import path as needed)
+const COLORS = {
+  PRIMARY: "#4CAF50",
+  BORDER: "#ddd",
+};
+const SIZES = {};
+const FONTS = {};
+const GLOBAL_STYLES = {};
 
 const MapScreen = ({ route, navigation }) => {
+  // Sample farm data (replace with your actual data source)
   const savedFarms = [
     {
       id: "1",
@@ -29,6 +40,7 @@ const MapScreen = ({ route, navigation }) => {
     },
   ];
 
+  // State declarations
   const [farms, setFarms] = useState(savedFarms);
   const [region, setRegion] = useState(null);
   const [addingFarm, setAddingFarm] = useState(false);
@@ -39,6 +51,7 @@ const MapScreen = ({ route, navigation }) => {
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [showFarmList, setShowFarmList] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [distance, setDistance] = useState(0); // Distance slider state
   const mapRef = useRef(null);
 
   // Set the first farm as selected by default and center the map on it
@@ -75,9 +88,9 @@ const MapScreen = ({ route, navigation }) => {
     })();
   }, []);
 
+  // Handlers
   const onSelectFarm = (farm) => {
     setSelectedFarm(farm);
-    console.log("Selected farm:", farm);
     setShowFarmList(false);
     if (mapRef.current) {
       mapRef.current.animateToRegion(
@@ -189,15 +202,6 @@ const MapScreen = ({ route, navigation }) => {
         </MapView>
       )}
 
-      {/* Display Selected Farm Name */}
-      {selectedFarm && (
-        <View style={styles.selectedFarmLabel}>
-          <Text style={styles.selectedFarmText}>
-            Selected: {selectedFarm.name}
-          </Text>
-        </View>
-      )}
-
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Icon name="search" size={20} color="#666" style={styles.searchIcon} />
@@ -210,7 +214,37 @@ const MapScreen = ({ route, navigation }) => {
         />
       </View>
 
-      {/* FABs */}
+      {/* Top Controls: Selected Farm and Distance Slider */}
+      {selectedFarm && (
+        <View style={styles.topControlsContainer}>
+          <View style={styles.selectedFarmContainer}>
+            <Icon
+              name="check"
+              size={20}
+              color="#4CAF50"
+              style={styles.checkIcon}
+            />
+            <Text style={styles.selectedFarmText}>
+              Selected: {selectedFarm.name}
+            </Text>
+          </View>
+          <Text style={styles.distanceHeader}>Search Distance</Text>
+          <Text style={styles.distanceText}>{distance} km</Text>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={distance}
+            onValueChange={setDistance}
+            minimumTrackTintColor={COLORS.PRIMARY}
+            maximumTrackTintColor={COLORS.BORDER}
+            thumbTintColor={COLORS.PRIMARY}
+          />
+        </View>
+      )}
+
+      {/* Floating Action Buttons (FABs) */}
       <View style={styles.controlsContainer}>
         <FAB
           style={[styles.fab, { elevation: 4 }]}
@@ -228,9 +262,12 @@ const MapScreen = ({ route, navigation }) => {
           <FAB
             style={[styles.fab, styles.nextFab, { elevation: 4 }]}
             icon="arrow-right"
-            label="Next"
+            label="Search Machinery"
             onPress={() =>
-              navigation.navigate("DistanceSlider", { farm: selectedFarm })
+              navigation.navigate("MachinerySearch", {
+                farm: selectedFarm,
+                distance,
+              })
             }
           />
         )}
@@ -258,7 +295,7 @@ const MapScreen = ({ route, navigation }) => {
         </View>
       </BottomSheet>
 
-      {/* Modal for Adding Farm */}
+      {/* Modal for Adding a New Farm */}
       <Modal visible={showForm} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -292,28 +329,13 @@ const MapScreen = ({ route, navigation }) => {
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
   map: {
     flex: 1,
-  },
-  selectedFarmLabel: {
-    position: "absolute",
-    top: 60,
-    left: 10,
-    right: 10,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 8,
-    padding: 10,
-    elevation: 2,
-    zIndex: 1,
-  },
-  selectedFarmText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
   },
   searchContainer: {
     position: "absolute",
@@ -334,6 +356,49 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     fontSize: 16,
+  },
+  topControlsContainer: {
+    position: "absolute",
+    top: 70, // Adjust based on your search bar height
+    left: 10,
+    right: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 8,
+    padding: 10,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    zIndex: 1,
+  },
+  selectedFarmContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  checkIcon: {
+    marginRight: 5,
+  },
+  selectedFarmText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  distanceHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 5,
+  },
+  distanceText: {
+    fontSize: 16,
+    color: "#333",
+    marginBottom: 5,
+  },
+  slider: {
+    width: "100%",
+    height: 40,
   },
   controlsContainer: {
     position: "absolute",
