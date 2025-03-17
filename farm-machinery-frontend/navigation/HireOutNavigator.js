@@ -5,6 +5,7 @@ import HireOutScreen from '../screens/HireOut/HireOutScreen';
 import AddMachineryScreen from '../screens/HireOut/AddMachineryScreen';
 import ManageMachineryScreen from '../screens/HireOut/ManageMachineryScreen';
 import AddMachineryDetailScreen from '../screens/HireOut/AddMachineryDetailScreen';
+import BookingListScreen from '../screens/HireOut/BookingListScreen';
 
 const HireOutStack = createStackNavigator();
 
@@ -25,6 +26,7 @@ const HireOutNavigator = () => {
         name="ManageMachinery"
         component={ManageMachineryScreen}
       />
+      <HireOutStack.Screen name="BookingList" component={BookingListScreen} />
       <HireOutStack.Screen name="AddMachineryDetailScreen" component={AddMachineryDetailScreen} />
     </HireOutStack.Navigator>
   );

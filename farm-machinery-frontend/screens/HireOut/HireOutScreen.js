@@ -20,6 +20,12 @@ const HireOutScreen = ({ navigation }) => {
         icon={<Text>🔧</Text>}
         onPress={() => navigation.navigate("ManageMachinery")}
       />
+      <Tile
+        title="Bookings"
+        description="View your bookings"
+        icon={<Text>📅</Text>}
+        onPress={() => navigation.navigate("BookingList")}
+      />
     </SafeAreaView>
   );
 };

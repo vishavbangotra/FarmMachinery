@@ -50,7 +50,7 @@ const MachineryScreen = ({ navigation, route }) => {
         }
         disabled={!selectedMachinery}
       >
-        <Text style={styles.buttonText}>Next to Distance Slider</Text>
+        <Text style={styles.buttonText}>Next</Text>
       </TouchableOpacity>
     </View>
   );
