@@ -257,7 +257,7 @@ const MapScreen = ({ route, navigation }) => {
           <FAB
             style={[styles.fab, styles.nextFab, { elevation: 4 }]}
             icon="arrow-right"
-            label="Search Machinery"
+            label="Search"
             onPress={() =>
               navigation.navigate("MachinerySearch", {
                 farm: selectedFarm,
