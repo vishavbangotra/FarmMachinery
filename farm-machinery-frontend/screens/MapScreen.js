@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
@@ -15,15 +16,18 @@ import { FAB, Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { BottomSheet } from "react-native-btr";
 import Slider from "@react-native-community/slider";
+import * as Haptics from "expo-haptics"; // For haptic feedback
 
 // App constants
 const COLORS = {
-  PRIMARY: "#4CAF50",
-  BORDER: "#ddd",
+  PRIMARY: "#34C759", // Softer green for elegance
+  SECONDARY: "#F2F2F7", // Light gray for backgrounds
+  ACCENT: "#5856D6", // Vibrant purple for highlights
+  TEXT: "#1C2526", // Darker text for contrast
+  BORDER: "#E5E5EA", // Subtle border color
 };
 
 const MapScreen = ({ route, navigation }) => {
-  // Sample farm data (replace with your data source)
   const savedFarms = [
     {
       id: "1",
@@ -50,8 +54,9 @@ const MapScreen = ({ route, navigation }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [distance, setDistance] = useState(0);
   const mapRef = useRef(null);
+  const fabScale = useRef(new Animated.Value(1)).current; // For FAB animations
 
-  // Set default selected farm and center map on it
+  // Set default selected farm and center map
   useEffect(() => {
     if (farms.length > 0 && !selectedFarm) {
       const defaultFarm = farms[0];
@@ -65,7 +70,7 @@ const MapScreen = ({ route, navigation }) => {
     }
   }, [farms, selectedFarm]);
 
-  // Request location permissions and set region if no farms exist
+  // Request location permissions
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -89,6 +94,7 @@ const MapScreen = ({ route, navigation }) => {
   const handleSelectFarm = (farm) => {
     setSelectedFarm(farm);
     setShowFarmList(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     mapRef.current?.animateToRegion(
       {
         latitude: farm.location.latitude,
@@ -135,6 +141,7 @@ const MapScreen = ({ route, navigation }) => {
         const newFarm = { name: farmName, location: tempLocation };
         const savedFarm = await handleAddFarm(newFarm);
         handleSelectFarm(savedFarm);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setIsSaving(false);
         handleCancelAdd();
       } catch (error) {
@@ -165,6 +172,21 @@ const MapScreen = ({ route, navigation }) => {
     }
   };
 
+  // FAB animation
+  const animateFab = () => {
+    Animated.spring(fabScale, {
+      toValue: 1.1,
+      friction: 5,
+      useNativeDriver: true,
+    }).start(() => {
+      Animated.spring(fabScale, {
+        toValue: 1,
+        friction: 5,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
   return (
     <View style={styles.container}>
       {region && (
@@ -175,6 +197,7 @@ const MapScreen = ({ route, navigation }) => {
           onPress={handleMapPress}
           onLongPress={handleLongPress}
           provider="google"
+          customMapStyle={mapStyle}
         >
           {farms.map((farm) => (
             <Marker
@@ -184,14 +207,16 @@ const MapScreen = ({ route, navigation }) => {
               coordinate={farm.location}
               title={farm.name}
               onPress={() => handleSelectFarm(farm)}
-              pinColor={selectedFarm?.id === farm.id ? "#4CAF50" : "#2196F3"}
+              pinColor={
+                selectedFarm?.id === farm.id ? COLORS.PRIMARY : COLORS.ACCENT
+              }
             />
           ))}
           {tempLocation && (
             <Marker
               coordinate={tempLocation}
               title="New Farm"
-              pinColor="#2196F3"
+              pinColor={COLORS.ACCENT}
             />
           )}
         </MapView>
@@ -199,31 +224,35 @@ const MapScreen = ({ route, navigation }) => {
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Icon name="search" size={20} color="#666" style={styles.searchIcon} />
+        <Icon
+          name="search"
+          size={18}
+          color={COLORS.TEXT}
+          style={styles.searchIcon}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Search location..."
+          placeholderTextColor="#8E8E93"
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSearch}
         />
       </View>
 
-      {/* Top Controls: Selected Farm and Distance Slider */}
+      {/* Top Controls */}
       {selectedFarm && (
         <View style={styles.topControlsContainer}>
           <View style={styles.selectedFarmContainer}>
             <Icon
-              name="check"
+              name="check-circle"
               size={20}
-              color="#4CAF50"
+              color={COLORS.PRIMARY}
               style={styles.checkIcon}
             />
-            <Text style={styles.selectedFarmText}>
-              Selected: {selectedFarm.name}
-            </Text>
+            <Text style={styles.selectedFarmText}>{selectedFarm.name}</Text>
           </View>
-          <Text style={styles.distanceHeader}>Search Distance</Text>
+          <Text style={styles.distanceHeader}>Search Radius</Text>
           <Text style={styles.distanceText}>{distance} km</Text>
           <Slider
             style={styles.slider}
@@ -241,21 +270,26 @@ const MapScreen = ({ route, navigation }) => {
 
       {/* Floating Action Buttons */}
       <View style={styles.controlsContainer}>
+        <Animated.View style={{ transform: [{ scale: fabScale }] }}>
+          <FAB
+            style={[styles.fab, { backgroundColor: COLORS.SECONDARY }]}
+            icon={addingFarm ? "close" : "plus"}
+            label={addingFarm ? "Cancel" : "Add Farm"}
+            onPress={() => {
+              animateFab();
+              addingFarm ? handleCancelAdd() : setAddingFarm(true);
+            }}
+          />
+        </Animated.View>
         <FAB
-          style={[styles.fab, { elevation: 4 }]}
-          icon={addingFarm ? "close" : "plus"}
-          label={addingFarm ? "Cancel" : "Add Farm"}
-          onPress={() => (addingFarm ? handleCancelAdd() : setAddingFarm(true))}
-        />
-        <FAB
-          style={[styles.fab, { elevation: 4 }]}
+          style={[styles.fab, { backgroundColor: COLORS.SECONDARY }]}
           icon="format-list-bulleted"
           label="Farms"
           onPress={() => setShowFarmList(true)}
         />
         {selectedFarm && (
           <FAB
-            style={[styles.fab, styles.nextFab, { elevation: 4 }]}
+            style={[styles.fab, { backgroundColor: COLORS.PRIMARY }]}
             icon="arrow-right"
             label="Search"
             onPress={() =>
@@ -268,7 +302,7 @@ const MapScreen = ({ route, navigation }) => {
         )}
       </View>
 
-      {/* Bottom Sheet for Farm Selection */}
+      {/* Bottom Sheet */}
       <BottomSheet
         visible={showFarmList}
         onBackButtonPress={() => setShowFarmList(false)}
@@ -290,14 +324,14 @@ const MapScreen = ({ route, navigation }) => {
         </View>
       </BottomSheet>
 
-      {/* Modal for Adding a New Farm */}
+      {/* Modal */}
       <Modal visible={showForm} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>New Farm Location</Text>
               <TouchableOpacity onPress={handleCancelAdd}>
-                <Icon name="close" size={24} color="#666" />
+                <Icon name="close" size={24} color={COLORS.TEXT} />
               </TouchableOpacity>
             </View>
             <Text style={styles.label}>Farm Name</Text>
@@ -310,7 +344,7 @@ const MapScreen = ({ route, navigation }) => {
             />
             <PaperButton
               mode="contained"
-              color="#4CAF50"
+              color={COLORS.PRIMARY}
               onPress={handleSaveFarm}
               disabled={!farmName.trim() || isSaving}
               style={styles.saveButton}
@@ -324,38 +358,55 @@ const MapScreen = ({ route, navigation }) => {
   );
 };
 
+// Custom Map Style (optional)
+const mapStyle = [
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#F2F2F7" }],
+  },
+  {
+    featureType: "landscape",
+    elementType: "geometry",
+    stylers: [{ color: "#E5E5EA" }],
+  },
+];
+
 // Styles
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
   searchContainer: {
     position: "absolute",
-    top: 10,
-    left: 10,
-    right: 10,
+    top: 40,
+    left: 20,
+    right: 20,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 5,
-    elevation: 2,
+    backgroundColor: COLORS.SECONDARY,
+    borderRadius: 25,
+    padding: 10,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   searchIcon: { marginHorizontal: 10 },
-  searchInput: { flex: 1, height: 40, fontSize: 16 },
+  searchInput: { flex: 1, height: 40, fontSize: 16, color: COLORS.TEXT },
   topControlsContainer: {
     position: "absolute",
-    top: 70,
-    left: 10,
-    right: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderRadius: 8,
-    padding: 10,
-    elevation: 2,
+    top: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(242, 242, 247, 0.95)",
+    borderRadius: 15,
+    padding: 15,
+    elevation: 3,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    zIndex: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   selectedFarmContainer: {
     flexDirection: "row",
@@ -363,28 +414,38 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   checkIcon: { marginRight: 5 },
-  selectedFarmText: { fontSize: 16, fontWeight: "bold", color: "#333" },
+  selectedFarmText: { fontSize: 16, fontWeight: "600", color: COLORS.TEXT },
   distanceHeader: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.TEXT,
     marginBottom: 5,
   },
-  distanceText: { fontSize: 16, color: "#333", marginBottom: 5 },
+  distanceText: { fontSize: 14, color: COLORS.TEXT, marginBottom: 5 },
   slider: { width: "100%", height: 40 },
-  controlsContainer: { position: "absolute", bottom: 16, right: 16, gap: 8 },
-  fab: { backgroundColor: "#fff" },
-  nextFab: { backgroundColor: "#4CAF50" },
+  controlsContainer: { position: "absolute", bottom: 30, right: 20, gap: 10 },
+  fab: { borderRadius: 30, paddingHorizontal: 10 },
   bottomSheet: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.SECONDARY,
     padding: 20,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     height: 300,
   },
-  bottomSheetTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
-  farmItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: "#ddd" },
-  farmName: { fontSize: 16 },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.TEXT,
+    marginBottom: 10,
+  },
+  farmItem: {
+    padding: 15,
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    marginBottom: 5,
+    elevation: 1,
+  },
+  farmName: { fontSize: 16, color: COLORS.TEXT },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -392,9 +453,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    width: "80%",
-    backgroundColor: "#fff",
-    borderRadius: 10,
+    width: "85%",
+    backgroundColor: COLORS.SECONDARY,
+    borderRadius: 20,
     padding: 20,
     elevation: 5,
   },
@@ -404,19 +465,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  modalTitle: { fontSize: 20, fontWeight: "bold" },
-  label: { fontSize: 16, marginBottom: 5 },
+  modalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.TEXT },
+  label: { fontSize: 16, color: COLORS.TEXT, marginBottom: 5 },
   input: {
     height: 50,
-    borderColor: "#ddd",
+    borderColor: COLORS.BORDER,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 12,
     marginBottom: 20,
     fontSize: 16,
     backgroundColor: "#fff",
   },
-  saveButton: { marginTop: 10 },
+  saveButton: { marginTop: 10, borderRadius: 10 },
 });
 
 export default MapScreen;
