@@ -1,4 +1,4 @@
-import React, { useState } from "react"; // Add this import
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,46 +7,49 @@ import {
   StyleSheet,
 } from "react-native";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
-import MapScreen from "../MapScreen";
-import { MACHINERY } from "../../Info/MachineryInfo";
+import * as Haptics from "expo-haptics"; // Optional: for haptic feedback
+import { MACHINERY } from "../../Info/MachineryInfo"
 
 const MachineryScreen = ({ navigation, route }) => {
   const [selectedMachinery, setSelectedMachinery] = useState(null);
-
   const machinery = MACHINERY
+
+  const handleSelectMachinery = (item) => {
+    setSelectedMachinery(item);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // Optional haptic feedback
+  };
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={[styles.item, selectedMachinery === item && styles.selectedItem]}
+      onPress={() => handleSelectMachinery(item)}
+    >
+      <Text
+        style={[
+          styles.itemText,
+          selectedMachinery === item && styles.selectedItemText,
+        ]}
+      >
+        {item}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={GLOBAL_STYLES.header}>Select Machinery for Hire</Text>
+      <Text style={styles.title}>Select Machinery for Hire</Text>
       <FlatList
         data={machinery}
         numColumns={2}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.item,
-              selectedMachinery === item && GLOBAL_STYLES.selectedTile,
-            ]}
-            onPress={() => setSelectedMachinery(item)}
-          >
-            <Text
-              style={[
-                styles.itemText,
-                selectedMachinery === item && GLOBAL_STYLES.selectedTileTitle,
-              ]}
-            >
-              {item}
-            </Text>
-          </TouchableOpacity>
-        )}
+        renderItem={renderItem}
         keyExtractor={(item) => item}
+        contentContainerStyle={styles.listContainer}
       />
       <TouchableOpacity
         style={[styles.button, !selectedMachinery && styles.buttonDisabled]}
         onPress={() =>
           selectedMachinery &&
-          navigation.navigate("Map", {
-          })
+          navigation.navigate("Map", { machinery: selectedMachinery })
         }
         disabled={!selectedMachinery}
       >
@@ -59,47 +62,67 @@ const MachineryScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: SIZES.PADDING, // 20
-    backgroundColor: COLORS.BACKGROUND, // rgb(245, 246, 241)
+    padding: SIZES.PADDING,
+    backgroundColor: COLORS.BACKGROUND,
   },
   title: {
-    fontSize: SIZES.TITLE, // 32
-    fontFamily: FONTS.BOLD, // Platform-specific bold font
-    color: COLORS.TEXT, // rgb(51, 51, 51)
-    marginBottom: SIZES.MARGIN_LARGE, // 20
+    fontSize: SIZES.TITLE,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.TEXT,
+    marginBottom: SIZES.MARGIN_LARGE,
+    textAlign: "center",
+  },
+  listContainer: {
+    paddingBottom: SIZES.MARGIN_LARGE,
   },
   item: {
     flex: 1,
-    padding: SIZES.PADDING, // 20
-    backgroundColor: COLORS.INPUT_BG, // rgb(255, 255, 255)
-    margin: SIZES.MARGIN_SMALL, // 2
-    borderRadius: SIZES.BORDER_RADIUS, // 8
+    padding: SIZES.PADDING,
+    backgroundColor: COLORS.INPUT_BG,
+    margin: SIZES.MARGIN_SMALL,
+    borderRadius: SIZES.BORDER_RADIUS,
     borderWidth: 1,
-    borderColor: COLORS.BORDER, // rgb(164, 191, 166)
+    borderColor: COLORS.BORDER,
     alignItems: "center",
     justifyContent: "center",
+    elevation: 2, // Android shadow
+    shadowColor: "#000", // iOS shadow
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   selectedItem: {
-    borderColor: COLORS.PRIMARY, // rgb(76, 175, 80)
+    borderColor: COLORS.PRIMARY,
+    backgroundColor: "#E6F7E6", // Light green for selected state
   },
   itemText: {
-    fontSize: SIZES.INFO_TEXT, // 16
-    fontFamily: FONTS.REGULAR, // Platform-specific regular font
-    color: COLORS.TEXT, // rgb(51, 51, 51)
+    fontSize: SIZES.INFO_TEXT,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.TEXT,
+  },
+  selectedItemText: {
+    color: COLORS.PRIMARY,
+    fontFamily: FONTS.BOLD,
   },
   button: {
-    backgroundColor: COLORS.PRIMARY, // rgb(76, 175, 80)
-    padding: SIZES.PADDING, // 20
-    borderRadius: SIZES.BORDER_RADIUS, // 8
+    backgroundColor: COLORS.PRIMARY,
+    padding: SIZES.PADDING,
+    borderRadius: SIZES.BORDER_RADIUS,
     alignItems: "center",
+    marginTop: SIZES.MARGIN_LARGE,
+    elevation: 3, // Android shadow
+    shadowColor: "#000", // iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   buttonDisabled: {
-    backgroundColor: COLORS.PLACEHOLDER, // rgb(138, 154, 134)
+    backgroundColor: COLORS.PLACEHOLDER,
   },
   buttonText: {
-    color: COLORS.BACKGROUND, // rgb(245, 246, 241)
-    fontSize: SIZES.BUTTON_TEXT, // 18
-    fontFamily: FONTS.BOLD, // Platform-specific bold font
+    color: COLORS.BACKGROUND,
+    fontSize: SIZES.BUTTON_TEXT,
+    fontFamily: FONTS.BOLD,
   },
 });
 
