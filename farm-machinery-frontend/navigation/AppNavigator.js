@@ -1,54 +1,61 @@
 import React from "react";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createBottomTabNavigator, Navigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons"; // Assuming Expo is used
 import HireInScreen from "../screens/HireInScreen";
 import HireOutNavigator from "./HireOutNavigator";
 import HireInNavigator from "./HireInNavigator";
 import { COLORS } from "../constants/styles"; // Assuming constants are in a separate file
+import { createStackNavigator } from "@react-navigation/stack";
+import HomeScreen from "../screens/HomeScreen";
+import MachineryScreen from "../screens/HireIn/MachineryScreen";
+import MachinerySearchScreen from "../screens/HireIn/MachinerySearchScreen";
+import MapScreen from "../screens/MapScreen";
+import MachinerySearchDetailScreen from "../screens/HireIn/MachinerySearchDetailScreen";
+import HireOutScreen from "../screens/HireOut/HireOutScreen";
+import AddMachineryScreen from "../screens/HireOut/AddMachineryScreen";
+import ManageMachineryScreen from "../screens/HireOut/ManageMachineryScreen";
+import AddMachineryDetailScreen from "../screens/HireOut/AddMachineryDetailScreen";
+import BookingListScreen from "../screens/HireOut/BookingListScreen"; 
 
-const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: COLORS.SECONDARY, // Green for active tab
-        tabBarInactiveTintColor: 'grey', // Ensure this contrasts with BACKGROUND
-        tabBarStyle: {
-          // backgroundColor: COLORS.BACKGROUND,
-          height: 60,
-          elevation: 4, // Shadow for Android
-          // shadowColor: "#000",
-          // shadowOffset: { width: 0, height: -2 },
-          // shadowOpacity: 0.1,
-          // shadowRadius: 4,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12, // Adjust as needed
-          fontFamily: "YourSansSerifFont", // Replace with your font
-        },
-      }}
-    >
-      <Tab.Screen
-        name="Hire In"
-        component={HireInNavigator}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bus-sharp" color={color} size={size} />
-          ),
-        }}
+    <Stack.Navigator initialRouteName="Home">
+      <Stack.Screen name="Home" component={HomeScreen}/>
+      <Stack.Screen name="Machinery" component={MachineryScreen} />
+      <Stack.Screen
+        name="MachinerySearch"
+        component={MachinerySearchScreen}
+        options={{ title: "Search Machinery" }}
       />
-      <Tab.Screen
-        name="Hire Out"
-        component={HireOutNavigator}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="storefront-sharp" color={color} size={size} />
-          ),
-        }}
+      <Stack.Screen
+        name="Map"
+        component={MapScreen}
+        options={{ title: "Map" }}
       />
-    </Tab.Navigator>
+
+      <Stack.Screen
+        name="MachinerySearchDetail"
+        component={MachinerySearchDetailScreen}
+        options={{ title: "Search Machinery" }}
+      />
+      <Stack.Screen name="HireOut" component={HireOutScreen} />
+      <Stack.Screen
+        name="AddMachinery"
+        component={AddMachineryScreen}
+        options={{ title: "Add Machinery" }}
+      />
+      <Stack.Screen
+        name="ManageMachinery"
+        component={ManageMachineryScreen}
+      />
+      <Stack.Screen name="BookingList" component={BookingListScreen} />
+      <Stack.Screen
+        name="AddMachineryDetailScreen"
+        component={AddMachineryDetailScreen}
+      />
+    </Stack.Navigator>
   );
 };
 
