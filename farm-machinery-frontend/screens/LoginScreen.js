@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -8,25 +8,77 @@ import {
   Alert,
   Dimensions,
 } from "react-native";
+import 'dotenv/config'
 import * as CONSTANTS from "../constants/styles";
+import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  signInWithPhoneNumber,
+  PhoneAuthProvider,
+} from "firebase/auth";
+
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
+};
+
+const app = initializeApp(firebaseConfig,{
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+});
+const auth = getAuth(app);
 
 const { width } = Dimensions.get("window");
 const OTP_BOX_WIDTH = width * 0.12;
 
-const LoginScreen = ({ setIsAuthenticated }) => {
+const LoginScreen = ({ navigation }) => {
   const [countryCode, setCountryCode] = useState("+91");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isOtpSent, setIsOtpSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [verificationId, setVerificationId] = useState("");
+  const recaptchaVerifier = useRef(null);
   const otpInputs = [];
 
-  const handleSendOtp = () => {
-    if (phoneNumber.length !== 10) {
-      Alert.alert("Error", "Please enter a valid 10-digit phone number");
-      return;
+  const handleSendOtp = async () => {
+    try {
+      if (phoneNumber.length !== 10) {
+        Alert.alert("Error", "Please enter a valid 10-digit phone number");
+        return;
+      }
+
+      setLoading(true);
+      const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+      const phoneProvider = await signInWithPhoneNumber(
+        auth,
+        fullPhoneNumber,
+        recaptchaVerifier.current
+      );
+
+      setVerificationId(phoneProvider.verificationId);
+      setIsOtpSent(true);
+      Alert.alert(
+        "OTP Sent",
+        "Please check your phone for the verification code"
+      );
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
     }
-    setIsOtpSent(true);
-    Alert.alert("OTP Sent", "A mock OTP has been sent to your phone");
   };
 
   const handleOtpDigitChange = (text, index) => {
@@ -40,22 +92,37 @@ const LoginScreen = ({ setIsAuthenticated }) => {
     }
   };
 
-  const handleVerifyOtp = () => {
-    const otpString = otp.join("");
-    if (otpString.length !== 6) {
-      Alert.alert("Error", "Please enter a 6-digit OTP");
-      return;
-    }
-    // Mock verification: assume "123456" is correct
-    if (otpString === "123456") {
-      setIsAuthenticated(true);
-    } else {
-      Alert.alert("Error", "Invalid OTP");
+  const handleVerifyOtp = async () => {
+    try {
+      setLoading(true);
+      const otpString = otp.join("");
+      if (otpString.length !== 6) {
+        Alert.alert("Error", "Please enter a 6-digit OTP");
+        return;
+      }
+
+      const credential = PhoneAuthProvider.credential(
+        verificationId,
+        otpString
+      );
+
+      await signInWithCredential(auth, credential);
+      navigation.navigate("Home");
+    } catch (error) {
+      Alert.alert("Error", "Invalid OTP code");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+        attemptInvisibleVerification={true}
+      />
+
       <Text style={[styles.title, { marginBottom: 20 }]}>Login</Text>
       {!isOtpSent ? (
         <>
@@ -76,8 +143,14 @@ const LoginScreen = ({ setIsAuthenticated }) => {
               placeholder="Enter phone number"
             />
           </View>
-          <TouchableOpacity style={styles.button} onPress={handleSendOtp}>
-            <Text style={styles.buttonText}>Send OTP</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleSendOtp}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Sending..." : "Send OTP"}
+            </Text>
           </TouchableOpacity>
         </>
       ) : (
@@ -96,18 +169,19 @@ const LoginScreen = ({ setIsAuthenticated }) => {
               />
             ))}
           </View>
-          <TouchableOpacity style={styles.button} onPress={handleVerifyOtp}>
-            <Text style={styles.buttonText}>Verify OTP</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleVerifyOtp}
+            disabled={loading}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Verifying..." : "Verify OTP"}
+            </Text>
           </TouchableOpacity>
         </>
       )}
     </View>
   );
-};
-
-const LoginScreenWithAuth = (props) => {
-  const { setIsAuthenticated } = props.route.params;
-  return <LoginScreen setIsAuthenticated={setIsAuthenticated} />;
 };
 
 const styles = StyleSheet.create({
@@ -166,6 +240,18 @@ const styles = StyleSheet.create({
     fontSize: CONSTANTS.SIZES.BUTTON,
     fontFamily: CONSTANTS.FONTS.REGULAR,
   },
+  countryCodeInput: {
+    // ... existing styles
+    color: CONSTANTS.COLORS.TEXT,
+  },
+  phoneInput: {
+    // ... existing styles
+    color: CONSTANTS.COLORS.TEXT,
+  },
+  otpInput: {
+    // ... existing styles
+    color: CONSTANTS.COLORS.TEXT,
+  },
 });
 
-export default LoginScreenWithAuth;
+export default LoginScreen;

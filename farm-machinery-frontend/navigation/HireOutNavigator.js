@@ -16,18 +16,6 @@ const HireOutNavigator = () => {
         headerShown: false,
       }}
     >
-      <HireOutStack.Screen name="HireOut" component={HireOutScreen} />
-      <HireOutStack.Screen
-        name="AddMachinery"
-        component={AddMachineryScreen}
-        options={{ title: "Add Machinery" }}
-      />
-      <HireOutStack.Screen
-        name="ManageMachinery"
-        component={ManageMachineryScreen}
-      />
-      <HireOutStack.Screen name="BookingList" component={BookingListScreen} />
-      <HireOutStack.Screen name="AddMachineryDetailScreen" component={AddMachineryDetailScreen} />
     </HireOutStack.Navigator>
   );
 }

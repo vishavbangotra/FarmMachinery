@@ -1,18 +1,14 @@
-import React, { useState } from "react";
+import { useContext } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import AuthNavigator from "./AuthNavigator";
-import AppNavigator from "./AppNavigator";
+import { AuthContext } from "../context/AuthContext"; // Adjust the path
+import AuthNavigator from "./AuthNavigator"; // Your auth stack
+import AppNavigator from "./AppNavigator"; // Your main app stack
 
 const RootNavigator = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-
+  const { isAuthenticated } = useContext(AuthContext);
   return (
     <NavigationContainer>
-      {isAuthenticated ? (
-        <AppNavigator />
-      ) : (
-        <AuthNavigator setIsAuthenticated={setIsAuthenticated} />
-      )}
+      {isAuthenticated ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 };
