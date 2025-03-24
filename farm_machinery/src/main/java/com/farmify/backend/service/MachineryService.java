@@ -28,21 +28,11 @@ public class MachineryService {
     private final UserRepository userRepository;
     private final MachineryRepository machineryRepository;
 
-    private Class<? extends Machinery> getMachineryClass(String type) {
-        if (type == null || type.isEmpty())
-            return null;
-        return switch (type.toLowerCase()) {
-            case "tractor" -> Tractor.class;
-            case "rotavator" -> Rotavator.class;
-            default -> throw new IllegalArgumentException("Invalid machinery type: " + type);
-        };
-    }
-
+    // Main Functions
     public List<Machinery> getMachineryByDistanceAndType(@Param("type") String type, double lon, double lat, double distance) {
         Class<? extends Machinery> typeClass = getMachineryClass(type);
         return machineryRepository.findWithinDistance(typeClass, lon, lat, distance);
     }
-
     @Transactional
     public Machinery createMachinery(MachineryDTO dto) {
         User owner = userRepository.findById(dto.getOwnerId())
@@ -52,6 +42,22 @@ public class MachineryService {
             case TRACTOR -> createTractor(dto, owner);
             case ROTAVATOR -> createRotavator(dto, owner);
             // Add other types as needed
+        };
+    }
+
+    public Machinery getMachineryById(Long id) {
+        return machineryRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Machinery not found"));
+    }
+
+    // Helper Functions
+    private Class<? extends Machinery> getMachineryClass(String type) {
+        if (type == null || type.isEmpty())
+            return null;
+        return switch (type.toLowerCase()) {
+            case "tractor" -> Tractor.class;
+            case "rotavator" -> Rotavator.class;
+            default -> throw new IllegalArgumentException("Invalid machinery type: " + type);
         };
     }
 
@@ -78,6 +84,7 @@ public class MachineryService {
     private void setCommonFields(Machinery machinery, MachineryDTO dto, User owner) {
         machinery.setOwner(owner);
         machinery.setRemarks(dto.getRemarks());
+        machinery.setImageUrl(dto.getImageUrl());
         machinery.setLatitude(dto.getLatitude());
         machinery.setLongitude(dto.getLongitude());
         machinery.setAvailable(dto.isAvailable());

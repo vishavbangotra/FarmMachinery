@@ -18,6 +18,8 @@ public class MachineryDTO {
     private double longitude;
     private boolean available = true;
 
+    private String imageUrl;
+
     // Tractor-specific
     private Integer horsepower;
     private Boolean is4x4;

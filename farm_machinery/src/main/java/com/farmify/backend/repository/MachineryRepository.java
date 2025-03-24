@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import com.farmify.backend.model.Machinery;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface MachineryRepository extends JpaRepository<Machinery, Long> {
         @Query("""
@@ -25,4 +26,6 @@ public interface MachineryRepository extends JpaRepository<Machinery, Long> {
         
         @Query("SELECT m FROM Machinery m WHERE TYPE(m) = :type AND m.available = true")
         List<Machinery> findAvailableByType(@Param("type") Class<? extends Machinery> type);
+
+        Optional<Machinery> findById(Long id);
 }
