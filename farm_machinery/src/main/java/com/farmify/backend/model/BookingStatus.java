@@ -3,5 +3,6 @@ package com.farmify.backend.model;
 public enum BookingStatus {
     PENDING,
     CONFIRMED,
-    CANCELLED
+    CANCELLED,
+    COMPLETED
 }

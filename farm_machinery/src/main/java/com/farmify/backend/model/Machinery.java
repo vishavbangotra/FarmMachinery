@@ -21,6 +21,7 @@ public abstract class Machinery {
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private User owner;
+    private String imageUrl;
     private String remarks;
     private double latitude;
     private double longitude;

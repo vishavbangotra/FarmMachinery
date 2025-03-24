@@ -2,7 +2,6 @@ package com.farmify.backend.controller;
 
 import java.util.List;
 
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -49,30 +48,9 @@ public class MachineryController {
         return ResponseEntity.ok(machineryList);
     }
 
-    @PostMapping("/post-test")
+    @GetMapping("/{id}")
     @PreAuthorize("permitAll()")
-    public String postTest(){
-        return "Machinery Post Test!";
+    public ResponseEntity<Machinery> getMachineryById(@PathVariable Long id) {
+        return ResponseEntity.ok().body(machineryService.getMachineryById(id));
     }
-
-
-    @GetMapping("/test")
-    @PreAuthorize("permitAll()")
-    public String test(){
-        return "Machinery Test!";
-    }
-
-    // @GetMapping("/{id}")
-    // public Machinery getMachineryById(@PathVariable Long id) {
-    //     return machineryService.getMachineryById(id);
-    // }
-
-    // @GetMapping("/search")
-    // public List<Machinery> searchMachinery(
-    //         @RequestParam(required = false) String type,
-    //         @RequestParam double lat,
-    //         @RequestParam double lon,
-    //         @RequestParam double distance) {
-    //     return machineryRepository.findWithinDistance(type, lon, lat, distance);
-    // }
 }
