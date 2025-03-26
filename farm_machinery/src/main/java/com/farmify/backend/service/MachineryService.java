@@ -11,6 +11,7 @@ import com.farmify.backend.model.Machinery;
 import com.farmify.backend.model.Rotavator;
 import com.farmify.backend.model.Tractor;
 import com.farmify.backend.model.User;
+import com.farmify.backend.repository.FarmRepository;
 import com.farmify.backend.repository.MachineryRepository;
 import com.farmify.backend.repository.RotavatorRepository;
 import com.farmify.backend.repository.TractorRepository;
@@ -27,6 +28,7 @@ public class MachineryService {
     private final RotavatorRepository rotavatorRepository;
     private final UserRepository userRepository;
     private final MachineryRepository machineryRepository;
+    private final FarmRepository farmRepository;
 
     // Main Functions
     public List<Machinery> getMachineryByDistanceAndType(@Param("type") String type, double lon, double lat, double distance) {
@@ -85,9 +87,8 @@ public class MachineryService {
         machinery.setOwner(owner);
         machinery.setRemarks(dto.getRemarks());
         machinery.setImageUrl(dto.getImageUrl());
-        machinery.setLatitude(dto.getLatitude());
-        machinery.setLongitude(dto.getLongitude());
         machinery.setAvailable(dto.isAvailable());
+        machinery.setFarmLocation(farmRepository.findById(dto.getFarmId()).orElseThrow(() -> new EntityNotFoundException("Farm not found")));
     }
 
     private void validateTractor(MachineryDTO dto) {

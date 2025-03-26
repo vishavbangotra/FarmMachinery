@@ -11,12 +11,12 @@ import java.util.Optional;
 public interface MachineryRepository extends JpaRepository<Machinery, Long> {
         @Query("""
                          SELECT m FROM Machinery m
-                         WHERE (:type IS NULL OR TYPE(m) = :type)
-                         AND (6371 * ACOS(
-                               COS(RADIANS(:lat)) * COS(RADIANS(m.latitude))
-                               * COS(RADIANS(m.longitude) - RADIANS(:lon))
-                               + SIN(RADIANS(:lat)) * SIN(RADIANS(m.latitude))
-                             )) <= :distance
+                        WHERE (:type IS NULL OR TYPE(m) = :type)
+                        AND (6371 * ACOS(
+                              COS(RADIANS(:lat)) * COS(RADIANS(m.farmLocation.latitude))
+                              * COS(RADIANS(m.farmLocation.longitude) - RADIANS(:lon))
+                              + SIN(RADIANS(:lat)) * SIN(RADIANS(m.farmLocation.latitude))
+                            )) <= :distance
                         """)
         List<Machinery> findWithinDistance(
                         @Param("type") Class<? extends Machinery> type,

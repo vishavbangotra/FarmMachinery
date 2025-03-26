@@ -14,8 +14,7 @@ public class MachineryDTO {
     private Long ownerId;
 
     private String remarks;
-    private double latitude;
-    private double longitude;
+    private Long farmId;
     private boolean available = true;
 
     private String imageUrl;
