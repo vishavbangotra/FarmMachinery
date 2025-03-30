@@ -2,7 +2,10 @@ package com.farmify.backend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,14 +23,31 @@ public class FarmController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<Farm> addFarm(FarmDTO farmDTO) {
+    public ResponseEntity<Long> addFarm(@RequestBody FarmDTO farmDTO) {
         Long farmId = farmDTO.getFarmId();
-        if(farmService.findFarmById(farmId).isPresent()) {
-            farmService.updateFarm(farmDTO);
-        } else {
-            farmService.createFarm(farmDTO);
+
+        if (farmId != null && farmService.findFarmById(farmId).isPresent()) {
+            return ResponseEntity.badRequest().body(null);
         }
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+
+        Long id = farmService.createFarm(farmDTO).getId();
+        return ResponseEntity.status(HttpStatus.CREATED).body(id);
+    }
+
+    @GetMapping
+    public ResponseEntity<Iterable<Farm>> getAllFarms() {
+        return ResponseEntity.ok(farmService.getAllFarms());
+    }
+
+    @GetMapping("/user/{id}")
+    public ResponseEntity<Iterable<Farm>> getFarmsByUserId(@PathVariable Long id) {
+        return ResponseEntity.ok(farmService.getFarmsByUserId(id));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Farm> getFarmById(@PathVariable Long id) {
+        Farm farm = farmService.findFarmById(id).orElse(null);
+        return ResponseEntity.ok(farm);
     }
 
 

@@ -9,6 +9,7 @@ import {
     Switch,
 } from "react-native";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../constants/styles";
+import { useNavigation } from "@react-navigation/native";
 import myMachinery from "../dummy_data/myMachinery";
 import MachinerySchema from "../schemas/MachinerySchema";
 
@@ -26,12 +27,11 @@ const machinerySchemas = {
         type: "switch",
     },
     {
-      name: "engineType",
+      name: "remarks",
       label: "Engine Type",
       type: "text",
       placeholder: "Enter engine type",
     },
-    // Add more Tractor-specific fields here
   ],
   Combine: [
     {
@@ -46,7 +46,6 @@ const machinerySchemas = {
       type: "number",
       placeholder: "Enter cutting width",
     },
-    // Add more Combine-specific fields here
   ],
   Drone: [
     {
@@ -60,8 +59,7 @@ const machinerySchemas = {
       label: "Range (meters)",
       type: "number",
       placeholder: "Enter range",
-    },
-    // Add more Drone-specific fields here
+    }
   ],
 };
 
@@ -73,11 +71,15 @@ const DynamicMachineryForm = ({ machineryTitle, onSubmit }) => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
   };
 
+  const navigation = useNavigation();
+
   const handleSubmit = () => {
     console.log(`Submitting ${machineryTitle} form:`, formValues);
     if (onSubmit) {
       onSubmit(formValues);
     }
+    navigation.navigate('AddFarmForMachineryScreen');
+
   };
 
   return (

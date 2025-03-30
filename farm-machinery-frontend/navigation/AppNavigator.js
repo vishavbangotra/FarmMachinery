@@ -16,13 +16,14 @@ import AddMachineryScreen from "../screens/HireOut/AddMachineryScreen";
 import ManageMachineryScreen from "../screens/HireOut/ManageMachineryScreen";
 import AddMachineryDetailScreen from "../screens/HireOut/AddMachineryDetailScreen";
 import BookingListScreen from "../screens/HireOut/BookingListScreen"; 
+import AddFarmForMachineryScreen from "../screens/HireOut/AddFarmForMachineryScreen";
 
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   return (
     <Stack.Navigator initialRouteName="Home">
-      <Stack.Screen name="Home" component={HomeScreen}/>
+      <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Machinery" component={MachineryScreen} />
       <Stack.Screen
         name="MachinerySearch"
@@ -46,11 +47,12 @@ const AppNavigator = () => {
         component={AddMachineryScreen}
         options={{ title: "Add Machinery" }}
       />
-      <Stack.Screen
-        name="ManageMachinery"
-        component={ManageMachineryScreen}
-      />
+      <Stack.Screen name="ManageMachinery" component={ManageMachineryScreen} />
       <Stack.Screen name="BookingList" component={BookingListScreen} />
+      <Stack.Screen
+        name="AddFarmForMachineryScreen"
+        component={AddFarmForMachineryScreen}
+      />
       <Stack.Screen
         name="AddMachineryDetailScreen"
         component={AddMachineryDetailScreen}
