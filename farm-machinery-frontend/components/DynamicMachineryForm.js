@@ -74,11 +74,11 @@ const DynamicMachineryForm = ({ machineryTitle, onSubmit }) => {
   const navigation = useNavigation();
 
   const handleSubmit = () => {
-    console.log(`Submitting ${machineryTitle} form:`, formValues);
+    console.log(`Submitting ${machineryTitle} form:`, {machineryTitle, ...formValues});
     if (onSubmit) {
       onSubmit(formValues);
     }
-    navigation.navigate('AddFarmForMachineryScreen');
+    navigation.navigate('AddFarmForMachineryScreen', { machineryTitle: machineryTitle, machineryDetails: formValues });
 
   };
 

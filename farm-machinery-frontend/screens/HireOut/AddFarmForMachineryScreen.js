@@ -28,7 +28,7 @@ const COLORS = {
   BORDER: "#E5E5EA",
 };
 
-const SelectFarmForMachinery = ({ navigation }) => {
+const SelectFarmForMachinery = ({ navigation, route }) => {
   // Updated farm format: each object has id, description, latitude, and longitude.
   const savedFarms = [
     {
@@ -59,9 +59,10 @@ const SelectFarmForMachinery = ({ navigation }) => {
   useEffect(() => {
     async function fetchFarms() {
       try {
-        const response = await fetch(`http://10.0.2.2:8080/api/farms/user/${userId}`);
+        const response = await fetch(
+          `http://10.0.2.2:8080/api/farms/user/${userId}`
+        );
         const data = await response.json();
-        console.log(data);
         setFarms(data);
         if (data.length > 0 && !selectedFarm) {
           setSelectedFarm(data[0]);
@@ -86,6 +87,42 @@ const SelectFarmForMachinery = ({ navigation }) => {
       });
     }
   }, [farms, selectedFarm]);
+
+  const handleAddMachinery = async (farmId, machineryDetails) => {
+    setIsSaving(true);
+    try {
+      if (!route?.params?.machineryTitle) {
+        throw new Error("Machinery title is missing in route parameters");
+      }
+      if (!userId) {
+        throw new Error("User ID is not defined");
+      }
+      const response = await fetch(`http://10.0.2.2:8080/api/machinery/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: route.params.machineryTitle.toUpperCase(),
+          farmId,
+          ownerId: userId,
+          ...machineryDetails,
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Error adding machinery: ${response.status} - ${errorText}`
+        );
+      }
+      const data = await response.json();
+      navigation.navigate("ManageMachinery", { machinery: data });
+    } catch (error) {
+      console.error("Error adding machinery:", error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Request location permissions
   useEffect(() => {
@@ -124,7 +161,7 @@ const SelectFarmForMachinery = ({ navigation }) => {
   };
 
   const handleAddFarm = async (farm) => {
-    console.log(farm)
+    console.log(farm);
     const response = await fetch(`http://10.0.2.2:8080/api/farms/add`, {
       method: "POST",
       headers: {
@@ -319,9 +356,12 @@ const SelectFarmForMachinery = ({ navigation }) => {
             style={[styles.fab, { backgroundColor: COLORS.PRIMARY }]}
             icon="plus"
             label="Add Machinery"
-            onPress={() =>
-              navigation.navigate("ManageMachinery", { farm: selectedFarm })
-            }
+            onPress={() => {
+              const machineryDetails = route.params.machineryDetails;
+              console.log(machineryDetails);
+              handleAddMachinery(selectedFarm.id, machineryDetails);
+              navigation.navigate("ManageMachinery", { farm: selectedFarm });
+            }}
           />
         )}
       </View>
