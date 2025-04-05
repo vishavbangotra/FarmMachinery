@@ -31,7 +31,10 @@ public abstract class Machinery {
 
     private String remarks;
     
-    private boolean available;
+    private MachineryStatus status;
+
+    // Rent per day in rupees
+    private Integer rentPerDay;
 
     @JsonProperty("type")
     public String getType() {
@@ -40,6 +43,7 @@ public abstract class Machinery {
         } else if (this instanceof Rotavator) {
             return "rotavator";
         }
-        return null; // Handle other subclasses if any
+        return null; 
     }
+
 }

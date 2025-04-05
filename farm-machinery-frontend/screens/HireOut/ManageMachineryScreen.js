@@ -27,15 +27,12 @@ const ManageMachineryScreen = () => {
   const [modalStatus, setModalStatus] = useState("");
   const [modalHourlyRate, setModalHourlyRate] = useState("");
   const [modalImage, setModalImage] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [showFarmList, setShowFarmList] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [distance, setDistance] = useState(0);
-  const { userId } = useContext(AuthContext);
+  const { phoneNumber } = useContext(AuthContext);
 
   const fetchMachineries = async () => {
     const response = await fetch(
-      `http://10.0.2.2:8080/api/machinery?ownerId=${userId}`
+      `http://10.0.2.2:8080/api/machinery/phoneNumber/${phoneNumber}`
     );
     const data = await response.json();
     setMachineries(data);

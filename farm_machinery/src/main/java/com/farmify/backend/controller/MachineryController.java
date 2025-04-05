@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import com.farmify.backend.dto.MachineryDTO;
 import com.farmify.backend.model.Machinery;
 import com.farmify.backend.service.MachineryService;
+import com.farmify.backend.service.UserService;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -17,9 +18,11 @@ import jakarta.persistence.EntityNotFoundException;
 @RequestMapping("/api/machinery")
 public class MachineryController {
     private final MachineryService machineryService;
+    private final UserService userService;
 
-    public MachineryController(MachineryService machineryService) {
+    public MachineryController(MachineryService machineryService, UserService userService) {
         this.machineryService = machineryService;
+        this.userService = userService;
     }
 
     @PostMapping("/add")
@@ -37,9 +40,10 @@ public class MachineryController {
         }
     }
 
-    @GetMapping("/owner/{ownerId}")
+    @GetMapping("/phoneNumber/{phoneNumber}")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<Iterable<Machinery>> getAllMachineriesByOwner(@PathVariable Long ownerId) {
+    public ResponseEntity<Iterable<Machinery>> getAllMachineriesByOwner(@PathVariable String phoneNumber) {
+        Long ownerId = userService.findByPhoneNumber(phoneNumber).getId();
         return ResponseEntity.ok(machineryService.getMachineryByOwnerId(ownerId));
     }
 
