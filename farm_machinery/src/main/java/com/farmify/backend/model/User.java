@@ -1,12 +1,10 @@
 package com.farmify.backend.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.*;
 
@@ -21,4 +19,8 @@ public class User {
 
     @Column(unique = true, nullable = false)
     private String phoneNumber;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "user_id")
+    private List<PushToken> pushTokens = new ArrayList<>();
 }

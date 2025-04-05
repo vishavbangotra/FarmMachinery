@@ -52,6 +52,12 @@ public class MachineryService {
                 .orElseThrow(() -> new EntityNotFoundException("Machinery not found"));
     }
 
+    public Iterable<Machinery> getMachineryByOwnerId(Long ownerId) {
+        User user = userRepository.findById(ownerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        return machineryRepository.findByOwner(user);
+    }
+
     // Helper Functions
     private Class<? extends Machinery> getMachineryClass(String type) {
         if (type == null || type.isEmpty())

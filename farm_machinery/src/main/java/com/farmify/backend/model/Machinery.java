@@ -1,5 +1,6 @@
 package com.farmify.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.persistence.*;
@@ -31,4 +32,14 @@ public abstract class Machinery {
     private String remarks;
     
     private boolean available;
+
+    @JsonProperty("type")
+    public String getType() {
+        if (this instanceof Tractor) {
+            return "tractor";
+        } else if (this instanceof Rotavator) {
+            return "rotavator";
+        }
+        return null; // Handle other subclasses if any
+    }
 }

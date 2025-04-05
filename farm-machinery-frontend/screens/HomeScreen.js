@@ -1,14 +1,14 @@
-import React from "react";
+import React, { useContext, useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MachineryScreen from "./HireIn/MachineryScreen";
-import HireOutScreen from "./HireOut/HireOutScreen";
-import { useNavigation } from "@react-navigation/native";
+import AuthContext from "../context/AuthContext";
 
 const HomeScreen = ({ navigation }) => {
+  const { phoneNumber } = useContext(AuthContext);
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Welcome to Our Service</Text>
+      <Text>{phoneNumber}</Text>
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate("Machinery")}
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     color: "#4CAF50",
-    marginBottom: 40,
+    marginBottom: 10,
     textAlign: "center",
   },
   button: {

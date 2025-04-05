@@ -25,7 +25,6 @@ public class MachineryController {
     @PostMapping("/add")
     @PreAuthorize("permitAll()")
     public ResponseEntity<Machinery> addMachinery(@RequestBody MachineryDTO machinery) {
-        System.out.println(machinery.toString());
         try {
             Machinery createdMachinery = machineryService.createMachinery(machinery);
             return ResponseEntity.ok(createdMachinery);
@@ -36,6 +35,12 @@ public class MachineryController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    @GetMapping("/owner/{ownerId}")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Iterable<Machinery>> getAllMachineriesByOwner(@PathVariable Long ownerId) {
+        return ResponseEntity.ok(machineryService.getMachineryByOwnerId(ownerId));
     }
 
     @GetMapping("/search")

@@ -13,10 +13,11 @@ import * as CONSTANTS from "../constants/styles";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../context/AuthContext";
 import { useContext } from "react";
+import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get("window");
 const OTP_BOX_WIDTH = width * 0.12;
-const API_BASE_URL = "http://localhost:8080/auth";
+const API_BASE_URL = "http://10.0.2.2:8080/auth";
 
 const LoginScreen = ({ navigation }) => {
   const [countryCode, setCountryCode] = useState("+91");
@@ -81,7 +82,7 @@ const LoginScreen = ({ navigation }) => {
 
       const data = await response.json();
       if (data.success) {
-        await ReactNativeAsyncStorage.setItem("authToken", data.token);
+        await SecureStore.setItemAsync("jwt", data.token);
         setIsAuthenticated(true);
       } else {
         throw new Error(data.message || "OTP verification failed");

@@ -1,5 +1,5 @@
 // screens/ManageMachineryScreen.js
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,15 +15,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
 import * as ImagePicker from "expo-image-picker";
-import { FAB, Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { BottomSheet } from "react-native-btr";
-import Slider from "@react-native-community/slider";
+import AuthContext from "../../context/AuthContext";
 import { COLORS, SIZES, FONTS } from "../../constants/styles";
-import myMachinery from "../../dummy_data/myMachinery";
 
 const ManageMachineryScreen = () => {
-  const [machineries, setMachineries] = useState(myMachinery);
+  const [machineries, setMachineries] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMachinery, setSelectedMachinery] = useState(null);
   const [modalStatus, setModalStatus] = useState("");
@@ -33,6 +31,18 @@ const ManageMachineryScreen = () => {
   const [showFarmList, setShowFarmList] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [distance, setDistance] = useState(0);
+  const { userId } = useContext(AuthContext);
+
+  const fetchMachineries = async () => {
+    const response = await fetch(
+      `http://10.0.2.2:8080/api/machinery?ownerId=${userId}`
+    );
+    const data = await response.json();
+    setMachineries(data);
+  };
+  useEffect(() => {
+    fetchMachineries();
+  }, []);
 
   // Options for status management
   const statusOptions = ["active", "inactive", "engaged"];
@@ -302,7 +312,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardPlaceholderText: {
-    color: COLORS.SECONDARY || "#757575",
+    color: "white",
     fontSize: 16,
   },
   cardContent: {

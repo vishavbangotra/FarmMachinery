@@ -26,7 +26,7 @@ public class JwtService {
         return Jwts.builder()
                 .setSubject(phoneNumber.toString())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 10 hours
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
