@@ -1,5 +1,6 @@
 package com.farmify.backend.dto;
 
+import com.farmify.backend.model.MachineryStatus;
 import com.farmify.backend.model.MachineryType;
 
 import jakarta.validation.constraints.NotNull;
@@ -15,7 +16,7 @@ public class MachineryDTO {
 
     private String remarks;
     private Long farmId;
-    private boolean available = true;
+    private MachineryStatus status = MachineryStatus.AVAILABLE; // Enum: AVAILABLE, ENGAGED, UNAVAILABLE,
 
     private String imageUrl;
 

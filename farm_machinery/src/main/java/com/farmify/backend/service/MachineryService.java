@@ -93,7 +93,7 @@ public class MachineryService {
         machinery.setOwner(owner);
         machinery.setRemarks(dto.getRemarks());
         machinery.setImageUrl(dto.getImageUrl());
-        machinery.setAvailable(dto.isAvailable());
+        machinery.setStatus(dto.getStatus());
         machinery.setFarmLocation(farmRepository.findById(dto.getFarmId()).orElseThrow(() -> new EntityNotFoundException("Farm not found")));
     }
 

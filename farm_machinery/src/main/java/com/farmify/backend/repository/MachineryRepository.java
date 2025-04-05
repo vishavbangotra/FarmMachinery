@@ -25,7 +25,7 @@ public interface MachineryRepository extends JpaRepository<Machinery, Long> {
                         @Param("lat") double lat,
                         @Param("distance") double distance);
         
-        @Query("SELECT m FROM Machinery m WHERE TYPE(m) = :type AND m.available = true")
+        @Query("SELECT m FROM Machinery m WHERE TYPE(m) = :type AND m.status = AVAILABLE")
         List<Machinery> findAvailableByType(@Param("type") Class<? extends Machinery> type);
 
         Iterable<Machinery> findByOwner(User owner);

@@ -7,18 +7,45 @@ import {
   StyleSheet,
 } from "react-native";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
-import * as Haptics from "expo-haptics"; // Optional: for haptic feedback
-import { MACHINERY } from "../../Info/MachineryInfo"
+import * as Haptics from "expo-haptics";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import Icon from "react-native-vector-icons/FontAwesome";
 
-const MachineryScreen = ({ navigation, route }) => {
+const MachineryScreen = ({ navigation }) => {
+  // State variables
   const [selectedMachinery, setSelectedMachinery] = useState(null);
-  const machinery = MACHINERY
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
+  const machinery = [
+    "Tractor",
+    "Rotavator",
+    "Harvester",
+    "Land Leveller",
+    "Seed Drill",
+  ];
+
+  // Handlers
   const handleSelectMachinery = (item) => {
     setSelectedMachinery(item);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // Optional haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const openStartDatePicker = () => {
+    setShowStartDatePicker(true);
+  };
+
+  const openEndDatePicker = () => {
+    setShowEndDatePicker(true);
+  };
+
+  const formatDate = (date) => date.toLocaleDateString();
+
+  const isValidDateRange = startDate && endDate && endDate > startDate;
+
+  // Render machinery item
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={[styles.item, selectedMachinery === item && styles.selectedItem]}
@@ -32,12 +59,71 @@ const MachineryScreen = ({ navigation, route }) => {
       >
         {item}
       </Text>
+      {selectedMachinery === item && (
+        <Icon
+          name="check"
+          size={20}
+          color={COLORS.PRIMARY}
+          style={styles.checkIcon}
+        />
+      )}
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
+      {/* Title */}
       <Text style={styles.title}>Select Machinery for Hire</Text>
+
+      {/* Date Range Selector */}
+      <View style={styles.dateSection}>
+        <Text style={styles.sectionTitle}>Select Hire Dates</Text>
+        <View style={styles.dateRow}>
+          <Text style={styles.dateLabel}>Start Date:</Text>
+          <TouchableOpacity
+            onPress={openStartDatePicker}
+            style={styles.dateButton}
+          >
+            <View style={styles.dateButtonContent}>
+              <Icon
+                name="calendar"
+                size={20}
+                color={COLORS.PLACEHOLDER}
+                style={{ marginRight: SIZES.MARGIN_SMALL }}
+              />
+              <Text style={styles.dateText}>
+                {startDate ? formatDate(startDate) : "Select Start Date"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.dateRow}>
+          <Text style={styles.dateLabel}>End Date:</Text>
+          <TouchableOpacity
+            onPress={openEndDatePicker}
+            style={styles.dateButton}
+          >
+            <View style={styles.dateButtonContent}>
+              <Icon
+                name="calendar"
+                size={20}
+                color={COLORS.PLACEHOLDER}
+                style={{ marginRight: SIZES.MARGIN_SMALL }}
+              />
+              <Text style={styles.dateText}>
+                {endDate ? formatDate(endDate) : "Select End Date"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+        {startDate && endDate && !isValidDateRange && (
+          <Text style={styles.errorText}>
+            End date must be after start date
+          </Text>
+        )}
+      </View>
+
+      {/* Machinery List */}
       <FlatList
         data={machinery}
         numColumns={2}
@@ -45,16 +131,51 @@ const MachineryScreen = ({ navigation, route }) => {
         keyExtractor={(item) => item}
         contentContainerStyle={styles.listContainer}
       />
+
+      {/* Next Button */}
       <TouchableOpacity
-        style={[styles.button, !selectedMachinery && styles.buttonDisabled]}
+        style={[
+          styles.button,
+          (!selectedMachinery || !startDate || !endDate || !isValidDateRange) &&
+            styles.buttonDisabled,
+        ]}
         onPress={() =>
-          selectedMachinery &&
-          navigation.navigate("Map", { machinery: selectedMachinery })
+          navigation.navigate("Map", {
+            machinery: selectedMachinery,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+          })
         }
-        disabled={!selectedMachinery}
+        disabled={
+          !selectedMachinery || !startDate || !endDate || !isValidDateRange
+        }
       >
         <Text style={styles.buttonText}>Next</Text>
       </TouchableOpacity>
+
+      {/* Date Pickers */}
+      {showStartDatePicker && (
+        <DateTimePicker
+          value={startDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowStartDatePicker(false);
+            if (selectedDate) setStartDate(selectedDate);
+          }}
+        />
+      )}
+      {showEndDatePicker && (
+        <DateTimePicker
+          value={endDate || new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowEndDatePicker(false);
+            if (selectedDate) setEndDate(selectedDate);
+          }}
+        />
+      )}
     </View>
   );
 };
@@ -72,6 +193,48 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.MARGIN_LARGE,
     textAlign: "center",
   },
+  dateSection: {
+    marginBottom: SIZES.MARGIN_LARGE,
+  },
+  sectionTitle: {
+    fontSize: SIZES.SUBTITLE,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.TEXT,
+    marginBottom: SIZES.MARGIN_SMALL,
+  },
+  dateRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: SIZES.MARGIN_SMALL,
+  },
+  dateLabel: {
+    fontSize: SIZES.INFO_TEXT,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.TEXT,
+    marginRight: SIZES.MARGIN_SMALL,
+  },
+  dateButton: {
+    padding: SIZES.PADDING_SMALL,
+    backgroundColor: COLORS.INPUT_BG,
+    borderRadius: SIZES.BORDER_RADIUS,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+  },
+  dateButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dateText: {
+    fontSize: SIZES.INFO_TEXT,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.TEXT,
+  },
+  errorText: {
+    fontSize: SIZES.INFO_TEXT,
+    fontFamily: FONTS.REGULAR,
+    color: "red", // Define COLORS.ERROR as 'red' in constants if preferred
+    marginTop: SIZES.MARGIN_SMALL,
+  },
   listContainer: {
     paddingBottom: SIZES.MARGIN_LARGE,
   },
@@ -85,15 +248,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.BORDER,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 2, // Android shadow
-    shadowColor: "#000", // iOS shadow
+    position: "relative",
+    elevation: 2,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
   selectedItem: {
     borderColor: COLORS.PRIMARY,
-    backgroundColor: "#E6F7E6", // Light green for selected state
+    backgroundColor: "#E6F7E6",
   },
   itemText: {
     fontSize: SIZES.INFO_TEXT,
@@ -104,14 +268,19 @@ const styles = StyleSheet.create({
     color: COLORS.PRIMARY,
     fontFamily: FONTS.BOLD,
   },
+  checkIcon: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+  },
   button: {
     backgroundColor: COLORS.PRIMARY,
     padding: SIZES.PADDING,
     borderRadius: SIZES.BORDER_RADIUS,
     alignItems: "center",
     marginTop: SIZES.MARGIN_LARGE,
-    elevation: 3, // Android shadow
-    shadowColor: "#000", // iOS shadow
+    elevation: 3,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
