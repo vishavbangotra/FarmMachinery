@@ -9,7 +9,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import HomeScreen from "../screens/HomeScreen";
 import MachineryScreen from "../screens/HireIn/MachineryScreen";
 import MachinerySearchScreen from "../screens/HireIn/MachinerySearchScreen";
-import MapScreen from "../screens/MapScreen";
+import MapScreen from "../screens/HireIn/MapScreen";
 import MachinerySearchDetailScreen from "../screens/HireIn/MachinerySearchDetailScreen";
 import HireOutScreen from "../screens/HireOut/HireOutScreen";
 import AddMachineryScreen from "../screens/HireOut/AddMachineryScreen";

@@ -10,8 +10,6 @@ import {
 } from "react-native";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../constants/styles";
 import { useNavigation } from "@react-navigation/native";
-import myMachinery from "../dummy_data/myMachinery";
-import MachinerySchema from "../schemas/MachinerySchema";
 
 const machinerySchemas = {
   Tractor: [
@@ -22,15 +20,29 @@ const machinerySchemas = {
       placeholder: "Enter horsepower",
     },
     {
-        name: "is4x4",
-        label: "4x4 Capability",
-        type: "switch",
+      name: "is4x4",
+      label: "4x4 Capability",
+      type: "switch",
     },
     {
       name: "remarks",
-      label: "Engine Type",
+      label: "Remarks",
       type: "text",
-      placeholder: "Enter engine type",
+      placeholder: "Enter Remarks",
+    },
+  ],
+  Harvester: [
+    {
+      name: "bladeCount",
+      label: "Blade Count",
+      type: "number",
+      placeholder: "Enter Blade Count",
+    },
+    {
+      name: "workingDepth",
+      label: "Working Depth",
+      type: "number",
+      placeholder: "Enter Working Depth",
     },
   ],
   Combine: [
@@ -59,7 +71,7 @@ const machinerySchemas = {
       label: "Range (meters)",
       type: "number",
       placeholder: "Enter range",
-    }
+    },
   ],
 };
 

@@ -42,7 +42,7 @@ const MapScreen = ({ route, navigation }) => {
   ];
 
   // State declarations
-  const [farms, setFarms] = useState(savedFarms);
+  const [farms, setFarms] = useState([]);
   const [region, setRegion] = useState(null);
   const [addingFarm, setAddingFarm] = useState(false);
   const [tempLocation, setTempLocation] = useState(null);
@@ -62,13 +62,26 @@ const MapScreen = ({ route, navigation }) => {
       const defaultFarm = farms[0];
       setSelectedFarm(defaultFarm);
       setRegion({
-        latitude: defaultFarm.location.latitude,
-        longitude: defaultFarm.location.longitude,
+        latitude: defaultFarm.latitude,
+        longitude: defaultFarm.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       });
     }
   }, [farms, selectedFarm]);
+
+  const fetchFarms = async () => {
+      const response = await fetch(
+        `http://10.0.2.2:8080/api/farms/user/1`
+      );
+      const data = await response.json();
+      setFarms(data);
+    };
+  
+
+  useEffect(() => {
+    fetchFarms();
+  }, [])
 
   // Request location permissions
   useEffect(() => {
@@ -97,8 +110,8 @@ const MapScreen = ({ route, navigation }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     mapRef.current?.animateToRegion(
       {
-        latitude: farm.location.latitude,
-        longitude: farm.location.longitude,
+        latitude: farm.latitude,
+        longitude: farm.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       },
@@ -138,7 +151,7 @@ const MapScreen = ({ route, navigation }) => {
     if (farmName && tempLocation) {
       setIsSaving(true);
       try {
-        const newFarm = { name: farmName, location: tempLocation };
+        const newFarm = { name: farmName, latitude: tempLocation.latitude, longitude: tempLocation.longitude };
         const savedFarm = await handleAddFarm(newFarm);
         handleSelectFarm(savedFarm);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -204,8 +217,8 @@ const MapScreen = ({ route, navigation }) => {
               key={`${farm.id}-${
                 selectedFarm?.id === farm.id ? "selected" : "default"
               }`}
-              coordinate={farm.location}
-              title={farm.name}
+              coordinate={{latitude: farm.latitude, longitude: farm.longitude}}
+              title={farm.description}
               onPress={() => handleSelectFarm(farm)}
               pinColor={
                 selectedFarm?.id === farm.id ? COLORS.PRIMARY : COLORS.ACCENT

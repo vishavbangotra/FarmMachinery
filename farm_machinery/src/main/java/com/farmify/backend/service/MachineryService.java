@@ -84,8 +84,7 @@ public class MachineryService {
 
         Rotavator rotavator = new Rotavator();
         setCommonFields(rotavator, dto, owner);
-        rotavator.setBladeCount(dto.getBladeCount());
-        rotavator.setWorkingDepth(dto.getWorkingDepth());
+        rotavator.setSize(dto.getSize());
         return rotavatorRepository.save(rotavator);
     }
 
@@ -107,11 +106,8 @@ public class MachineryService {
     }
 
     private void validateRotavator(MachineryDTO dto) {
-        if (dto.getBladeCount() == null || dto.getBladeCount() <= 0) {
+        if (dto.getSize() == null || dto.getSize() <= 0) {
             throw new IllegalArgumentException("Invalid blade count");
-        }
-        if (dto.getWorkingDepth() == null || dto.getWorkingDepth() <= 0) {
-            throw new IllegalArgumentException("Invalid working depth");
         }
     }
 }

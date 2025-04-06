@@ -25,6 +25,5 @@ public class MachineryDTO {
     private Boolean is4x4;
 
     // Rotavator-specific
-    private Integer bladeCount;
-    private Double workingDepth;
+    private Integer size;
 }

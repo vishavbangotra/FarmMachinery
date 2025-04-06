@@ -8,6 +8,5 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class Rotavator extends Machinery {
-    private Integer bladeCount;
-    private Double workingDepth;
+    private Integer size;
 }
