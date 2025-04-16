@@ -24,7 +24,7 @@ const AppNavigator = () => {
   return (
     <Stack.Navigator initialRouteName="Home">
       <Stack.Screen name="Home" component={HomeScreen} />
-      <Stack.Screen name="Machinery" component={MachineryScreen} />
+      <Stack.Screen name="Machinery" component={MachineryScreen} options={{headerShown: false}}/>
       <Stack.Screen
         name="MachinerySearch"
         component={MachinerySearchScreen}

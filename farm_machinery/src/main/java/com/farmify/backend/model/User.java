@@ -17,6 +17,10 @@ public class User {
     private Long id;
     private LocalDate dateCreated;
 
+    private String name;
+
+    private String imageUrl;
+
     @Column(unique = true, nullable = false)
     private String phoneNumber;
 

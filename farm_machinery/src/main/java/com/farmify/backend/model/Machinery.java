@@ -24,6 +24,8 @@ public abstract class Machinery {
     private User owner;
     
     private String imageUrl;
+
+    private String modelInfo;
     
     @ManyToOne
     @JoinColumn(name = "farm_id")

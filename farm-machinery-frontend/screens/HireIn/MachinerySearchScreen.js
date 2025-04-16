@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,18 +7,54 @@ import {
   Image,
   StyleSheet,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import SearchData from "../../dummy_data/SearchData";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
 
 const MachinerySearchScreen = ({ route }) => {
-  console.log(route.params); // Log route params for debugging
+  // Expecting route params to include necessary search parameters:
+  // e.g., type, distance, lon, lat (passed from a previous screen)
+  const {
+    distance,
+    endDate,
+    farm,
+    pushTokens,
+    machinery,
+    startDate,
+  } = route.params;
+
   const navigation = useNavigation();
-  const [searchResults, setSearchResults] = useState(SearchData);
+  const [searchResults, setSearchResults] = useState([]);
   const [isSendAllModalVisible, setSendAllModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isBookingModalVisible, setBookingModalVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch machinery list from API on component mount
+  useEffect(() => {
+    const fetchMachinery = async () => {
+      setIsLoading(true);
+      try {
+        // Build URL with query parameters from route params
+        // Modify URL as necessary to match your backend endpoint
+        const apiUrl = `http://10.0.2.2:8080/api/machinery/search?type=${machinery.toUpperCase()}&lon=${farm.longitude}&lat=${farm.latitude}&distance=${distance}`;
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const machineryList = await response.json();
+        console.log(machineryList)
+        setSearchResults(machineryList);
+      } catch (error) {
+        console.error("Error fetching machinery data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMachinery();
+  }, [machinery, startDate, endDate, farm, distance]);
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -65,13 +101,17 @@ const MachinerySearchScreen = ({ route }) => {
         <Text style={styles.sendToAllText}>Send Booking Request to All</Text>
       </TouchableOpacity>
 
-      {/* FlatList of Machinery Items */}
-      <FlatList
-        data={searchResults}
-        renderItem={renderItem}
-        keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={{ paddingBottom: 16 }}
-      />
+      {/* Show loading indicator while fetching data */}
+      {isLoading ? (
+        <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+      ) : (
+        <FlatList
+          data={searchResults}
+          renderItem={renderItem}
+          keyExtractor={(item, index) => index.toString()}
+          contentContainerStyle={{ paddingBottom: 16 }}
+        />
+      )}
 
       {/* Modal for "Send to All" Confirmation */}
       <Modal

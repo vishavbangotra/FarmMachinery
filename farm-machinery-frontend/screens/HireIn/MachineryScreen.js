@@ -10,9 +10,9 @@ import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
 import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Icon from "react-native-vector-icons/FontAwesome";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const MachineryScreen = ({ navigation }) => {
-  // State variables
   const [selectedMachinery, setSelectedMachinery] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -27,7 +27,6 @@ const MachineryScreen = ({ navigation }) => {
     "Seed Drill",
   ];
 
-  // Handlers
   const handleSelectMachinery = (item) => {
     setSelectedMachinery(item);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -45,7 +44,6 @@ const MachineryScreen = ({ navigation }) => {
 
   const isValidDateRange = startDate && endDate && endDate > startDate;
 
-  // Render machinery item
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={[styles.item, selectedMachinery === item && styles.selectedItem]}
@@ -71,15 +69,10 @@ const MachineryScreen = ({ navigation }) => {
   );
 
   return (
-    <View style={styles.container}>
-      {/* Title */}
-      <Text style={styles.title}>Select Machinery for Hire</Text>
-
-      {/* Date Range Selector */}
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Select Machinery</Text>
       <View style={styles.dateSection}>
-        <Text style={styles.sectionTitle}>Select Hire Dates</Text>
-        <View style={styles.dateRow}>
-          <Text style={styles.dateLabel}>Start Date:</Text>
+        <View>
           <TouchableOpacity
             onPress={openStartDatePicker}
             style={styles.dateButton}
@@ -88,7 +81,7 @@ const MachineryScreen = ({ navigation }) => {
               <Icon
                 name="calendar"
                 size={20}
-                color={COLORS.PLACEHOLDER}
+                color={COLORS.PRIMARY}
                 style={{ marginRight: SIZES.MARGIN_SMALL }}
               />
               <Text style={styles.dateText}>
@@ -97,8 +90,7 @@ const MachineryScreen = ({ navigation }) => {
             </View>
           </TouchableOpacity>
         </View>
-        <View style={styles.dateRow}>
-          <Text style={styles.dateLabel}>End Date:</Text>
+        <View>
           <TouchableOpacity
             onPress={openEndDatePicker}
             style={styles.dateButton}
@@ -107,7 +99,7 @@ const MachineryScreen = ({ navigation }) => {
               <Icon
                 name="calendar"
                 size={20}
-                color={COLORS.PLACEHOLDER}
+                color={COLORS.PRIMARY}
                 style={{ marginRight: SIZES.MARGIN_SMALL }}
               />
               <Text style={styles.dateText}>
@@ -116,14 +108,14 @@ const MachineryScreen = ({ navigation }) => {
             </View>
           </TouchableOpacity>
         </View>
+      </View>
+      <View>
         {startDate && endDate && !isValidDateRange && (
           <Text style={styles.errorText}>
             End date must be after start date
           </Text>
         )}
       </View>
-
-      {/* Machinery List */}
       <FlatList
         data={machinery}
         numColumns={2}
@@ -131,8 +123,6 @@ const MachineryScreen = ({ navigation }) => {
         keyExtractor={(item) => item}
         contentContainerStyle={styles.listContainer}
       />
-
-      {/* Next Button */}
       <TouchableOpacity
         style={[
           styles.button,
@@ -152,8 +142,6 @@ const MachineryScreen = ({ navigation }) => {
       >
         <Text style={styles.buttonText}>Next</Text>
       </TouchableOpacity>
-
-      {/* Date Pickers */}
       {showStartDatePicker && (
         <DateTimePicker
           value={startDate || new Date()}
@@ -176,7 +164,7 @@ const MachineryScreen = ({ navigation }) => {
           }}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -189,50 +177,41 @@ const styles = StyleSheet.create({
   title: {
     fontSize: SIZES.TITLE,
     fontFamily: FONTS.BOLD,
-    color: COLORS.TEXT,
+    color: COLORS.TEXT_LIGHT,
     marginBottom: SIZES.MARGIN_LARGE,
     textAlign: "center",
   },
   dateSection: {
     marginBottom: SIZES.MARGIN_LARGE,
-  },
-  sectionTitle: {
-    fontSize: SIZES.SUBTITLE,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.TEXT,
-    marginBottom: SIZES.MARGIN_SMALL,
-  },
-  dateRow: {
+    display: "flex",
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: SIZES.MARGIN_SMALL,
+    justifyContent: "space-between",
   },
   dateLabel: {
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.REGULAR,
-    color: COLORS.TEXT,
+    color: COLORS.TEXT_LIGHT,
     marginRight: SIZES.MARGIN_SMALL,
   },
   dateButton: {
-    padding: SIZES.PADDING_SMALL,
-    backgroundColor: COLORS.INPUT_BG,
+    padding: SIZES.PADDING_SM,
     borderRadius: SIZES.BORDER_RADIUS,
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
+    borderColor: COLORS.PRIMARY,
   },
   dateButtonContent: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "center"
   },
   dateText: {
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.REGULAR,
-    color: COLORS.TEXT,
+    color: COLORS.PRIMARY,
   },
   errorText: {
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.REGULAR,
-    color: "red", // Define COLORS.ERROR as 'red' in constants if preferred
+    color: COLORS.ACCENT,
     marginTop: SIZES.MARGIN_SMALL,
   },
   listContainer: {
@@ -241,11 +220,11 @@ const styles = StyleSheet.create({
   item: {
     flex: 1,
     padding: SIZES.PADDING,
-    backgroundColor: COLORS.INPUT_BG,
+    backgroundColor: COLORS.PRIMARY,
     margin: SIZES.MARGIN_SMALL,
     borderRadius: SIZES.BORDER_RADIUS,
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
+    borderColor: COLORS.PRIMARY,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -262,7 +241,7 @@ const styles = StyleSheet.create({
   itemText: {
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.REGULAR,
-    color: COLORS.TEXT,
+    color: COLORS.TEXT_LIGHT,
   },
   selectedItemText: {
     color: COLORS.PRIMARY,
@@ -286,13 +265,14 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   buttonDisabled: {
-    backgroundColor: COLORS.PLACEHOLDER,
+    backgroundColor: COLORS.TEXT_SECONDARY,
   },
   buttonText: {
-    color: COLORS.BACKGROUND,
+    color: COLORS.ON_PRIMARY,
     fontSize: SIZES.BUTTON_TEXT,
     fontFamily: FONTS.BOLD,
   },
 });
 
 export default MachineryScreen;
+

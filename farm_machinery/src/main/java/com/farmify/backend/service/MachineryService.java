@@ -1,12 +1,15 @@
 package com.farmify.backend.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.repository.query.Param;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.farmify.backend.dto.MachineryDTO;
+import com.farmify.backend.dto.MachinerySearchResultDTO;
 import com.farmify.backend.model.Machinery;
 import com.farmify.backend.model.Rotavator;
 import com.farmify.backend.model.Tractor;
@@ -31,10 +34,62 @@ public class MachineryService {
     private final FarmRepository farmRepository;
 
     // Main Functions
-    public List<Machinery> getMachineryByDistanceAndType(@Param("type") String type, double lon, double lat, double distance) {
+    public List<MachinerySearchResultDTO> getAllMachineryByDistanceAndType(@Param("type") String type, double lon,
+            double lat, double distance) {
         Class<? extends Machinery> typeClass = getMachineryClass(type);
-        return machineryRepository.findWithinDistance(typeClass, lon, lat, distance);
+
+        List<Machinery> machineryList = machineryRepository.findWithinDistance(typeClass, lon, lat, distance);
+
+        List<MachinerySearchResultDTO> resultList = machineryList.stream()
+                .map(m -> {
+                    MachinerySearchResultDTO result = new MachinerySearchResultDTO();
+                    if (m.getFarmLocation() != null) {
+                        result.setDistance(MachineryService.calculateDistance(lat, lon,
+                                m.getFarmLocation().getLatitude(), m.getFarmLocation().getLongitude()));
+                        result.setFarmDescription(m.getFarmLocation().getDescription());
+                        result.setFarmLocation(m.getFarmLocation().toString());
+                        result.setLatitude(m.getFarmLocation().getLatitude());
+                        result.setLongitude(m.getFarmLocation().getLongitude());
+                    }
+                    if (m.getOwner() != null) {
+                        result.setOwnerImage(m.getOwner().getImageUrl());
+                        result.setOwnerName(m.getOwner().getName());
+                        result.setOwnerPhone(m.getOwner().getPhoneNumber());
+                    }
+                    if (m.getRentPerDay() != null) {
+                        result.setRentPerDay(m.getRentPerDay());
+                    }
+                    return result;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        return resultList;
     }
+
+    public static double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final double R = 6371; // Radius of the Earth in kilometers
+
+        // Convert latitude and longitude from degrees to radians
+        double lat1Rad = Math.toRadians(lat1);
+        double lon1Rad = Math.toRadians(lon1);
+        double lat2Rad = Math.toRadians(lat2);
+        double lon2Rad = Math.toRadians(lon2);
+
+        // Calculate the differences in coordinates
+        double dLat = lat2Rad - lat1Rad;
+        double dLon = lon2Rad - lon1Rad;
+
+        // Haversine formula
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        double distance = R * c;
+        return distance;
+    }
+
     @Transactional
     public Machinery createMachinery(MachineryDTO dto) {
         User owner = userRepository.findById(dto.getOwnerId())
@@ -52,7 +107,7 @@ public class MachineryService {
                 .orElseThrow(() -> new EntityNotFoundException("Machinery not found"));
     }
 
-    public Iterable<Machinery> getMachineryByOwnerId(Long ownerId) {
+    public Iterable<Machinery> getAllMachineryByOwnerId(Long ownerId) {
         User user = userRepository.findById(ownerId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
         return machineryRepository.findByOwner(user);
@@ -93,7 +148,8 @@ public class MachineryService {
         machinery.setRemarks(dto.getRemarks());
         machinery.setImageUrl(dto.getImageUrl());
         machinery.setStatus(dto.getStatus());
-        machinery.setFarmLocation(farmRepository.findById(dto.getFarmId()).orElseThrow(() -> new EntityNotFoundException("Farm not found")));
+        machinery.setFarmLocation(farmRepository.findById(dto.getFarmId())
+                .orElseThrow(() -> new EntityNotFoundException("Farm not found")));
     }
 
     private void validateTractor(MachineryDTO dto) {

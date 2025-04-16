@@ -36,6 +36,7 @@ const ManageMachineryScreen = () => {
     );
     const data = await response.json();
     setMachineries(data);
+    console.log(data);
   };
   useEffect(() => {
     fetchMachineries();

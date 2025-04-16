@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.farmify.backend.dto.MachineryDTO;
+import com.farmify.backend.dto.MachinerySearchResultDTO;
 import com.farmify.backend.model.Machinery;
 import com.farmify.backend.service.MachineryService;
 import com.farmify.backend.service.UserService;
@@ -44,16 +45,16 @@ public class MachineryController {
     @PreAuthorize("permitAll()")
     public ResponseEntity<Iterable<Machinery>> getAllMachineriesByOwner(@PathVariable String phoneNumber) {
         Long ownerId = userService.findByPhoneNumber(phoneNumber).getId();
-        return ResponseEntity.ok(machineryService.getMachineryByOwnerId(ownerId));
+        return ResponseEntity.ok(machineryService.getAllMachineryByOwnerId(ownerId));
     }
 
     @GetMapping("/search")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<List<Machinery>> findMachinery(@RequestParam String type, 
+    public ResponseEntity<List<MachinerySearchResultDTO>> findMachinery(@RequestParam String type, 
                                                          @RequestParam double lon, 
                                                          @RequestParam double lat, 
                                                          @RequestParam double distance) {
-        List<Machinery> machineryList = machineryService.getMachineryByDistanceAndType(type, lon, lat, distance);
+        List<MachinerySearchResultDTO> machineryList = machineryService.getAllMachineryByDistanceAndType(type, lon, lat, distance);
         return ResponseEntity.ok(machineryList);
     }
 

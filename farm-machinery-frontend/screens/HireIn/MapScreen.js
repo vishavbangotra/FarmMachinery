@@ -71,17 +71,14 @@ const MapScreen = ({ route, navigation }) => {
   }, [farms, selectedFarm]);
 
   const fetchFarms = async () => {
-      const response = await fetch(
-        `http://10.0.2.2:8080/api/farms/user/1`
-      );
-      const data = await response.json();
-      setFarms(data);
-    };
-  
+    const response = await fetch(`http://10.0.2.2:8080/api/farms/user/1`);
+    const data = await response.json();
+    setFarms(data);
+  };
 
   useEffect(() => {
     fetchFarms();
-  }, [])
+  }, []);
 
   // Request location permissions
   useEffect(() => {
@@ -151,7 +148,11 @@ const MapScreen = ({ route, navigation }) => {
     if (farmName && tempLocation) {
       setIsSaving(true);
       try {
-        const newFarm = { name: farmName, latitude: tempLocation.latitude, longitude: tempLocation.longitude };
+        const newFarm = {
+          name: farmName,
+          latitude: tempLocation.latitude,
+          longitude: tempLocation.longitude,
+        };
         const savedFarm = await handleAddFarm(newFarm);
         handleSelectFarm(savedFarm);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -217,7 +218,10 @@ const MapScreen = ({ route, navigation }) => {
               key={`${farm.id}-${
                 selectedFarm?.id === farm.id ? "selected" : "default"
               }`}
-              coordinate={{latitude: farm.latitude, longitude: farm.longitude}}
+              coordinate={{
+                latitude: farm.latitude,
+                longitude: farm.longitude,
+              }}
               title={farm.description}
               onPress={() => handleSelectFarm(farm)}
               pinColor={
@@ -305,12 +309,15 @@ const MapScreen = ({ route, navigation }) => {
             style={[styles.fab, { backgroundColor: COLORS.PRIMARY }]}
             icon="arrow-right"
             label="Search"
-            onPress={() =>
+            onPress={() => {
               navigation.navigate("MachinerySearch", {
                 farm: selectedFarm,
+                machinery: route.params.machinery,
+                startDate: route.params.startDate,
+                endDate: route.params.endDate,
                 distance,
-              })
-            }
+              });
+            }}
           />
         )}
       </View>
