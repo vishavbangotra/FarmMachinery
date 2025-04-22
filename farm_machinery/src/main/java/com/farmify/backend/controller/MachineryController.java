@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import com.farmify.backend.dto.MachineryDTO;
 import com.farmify.backend.dto.MachinerySearchResultDTO;
 import com.farmify.backend.model.Machinery;
+import com.farmify.backend.service.JwtService;
 import com.farmify.backend.service.MachineryService;
 import com.farmify.backend.service.UserService;
 
@@ -20,10 +21,15 @@ import jakarta.persistence.EntityNotFoundException;
 public class MachineryController {
     private final MachineryService machineryService;
     private final UserService userService;
+    private final JwtService jwtService;
+    
 
-    public MachineryController(MachineryService machineryService, UserService userService) {
+
+    public MachineryController(MachineryService machineryService, UserService userService, JwtService jwtService) {
         this.machineryService = machineryService;
         this.userService = userService;
+        this.jwtService = jwtService;
+
     }
 
     @PostMapping("/add")
@@ -41,10 +47,17 @@ public class MachineryController {
         }
     }
 
-    @GetMapping("/phoneNumber/{phoneNumber}")
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<Iterable<Machinery>> getAllMachineriesByOwner(@PathVariable String phoneNumber) {
-        Long ownerId = userService.findByPhoneNumber(phoneNumber).getId();
+    @GetMapping
+    public ResponseEntity<Iterable<Machinery>> getAllMachineriesByOwner(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        
+                // Check if Authorization header is valid
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String token = authorizationHeader.substring("Bearer ".length()).trim();
+
+        Long ownerId = jwtService.extractUserId(token);
         return ResponseEntity.ok(machineryService.getAllMachineryByOwnerId(ownerId));
     }
 

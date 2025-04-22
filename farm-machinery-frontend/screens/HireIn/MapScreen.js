@@ -46,7 +46,6 @@ const MapScreen = ({ route, navigation }) => {
   ];
 
   // State declarations
-  const {userId} = AuthContext
   const [farms, setFarms] = useState([]);
   const [region, setRegion] = useState(null);
   const [addingFarm, setAddingFarm] = useState(false);

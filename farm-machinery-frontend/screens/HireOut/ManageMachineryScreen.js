@@ -1,5 +1,5 @@
 // screens/ManageMachineryScreen.js
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   Modal,
   Image,
   ScrollView,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
@@ -19,38 +21,64 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { BottomSheet } from "react-native-btr";
 import AuthContext from "../../context/AuthContext";
 import { COLORS, SIZES, FONTS } from "../../constants/styles";
+import * as SecureStore from "expo-secure-store";
+const API_BASE_URL = "http://10.0.2.2:8080";
 
+/**
+ * ManageMachineryScreen component for displaying and managing machinery items.
+ * Features include fetching machinery data, editing via modal, and refreshing the list.
+ */
 const ManageMachineryScreen = () => {
   const [machineries, setMachineries] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMachinery, setSelectedMachinery] = useState(null);
-  const [modalStatus, setModalStatus] = useState("");
-  const [modalHourlyRate, setModalHourlyRate] = useState("");
-  const [modalImage, setModalImage] = useState("");
+  const [tempModalStatus, setTempModalStatus] = useState("");
+  const [tempModalHourlyRate, setTempModalHourlyRate] = useState("");
+  const [tempModalImage, setTempModalImage] = useState("");
   const [showFarmList, setShowFarmList] = useState(false);
-  const { phoneNumber } = useContext(AuthContext);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const fetchMachineries = async () => {
-    const response = await fetch(
-      `http://10.0.2.2:8080/api/machinery/phoneNumber/${phoneNumber}`
-    );
-    const data = await response.json();
-    setMachineries(data);
-    console.log(data);
-  };
-  useEffect(() => {
-    fetchMachineries();
+  // Fetch machinery data from the server
+  const fetchMachineries = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      const authToken = await SecureStore.getItemAsync("jwt");
+      if (!authToken) {
+        setIsAuthenticated(false);
+      }
+      const response = await fetch(`${API_BASE_URL}/api/machinery`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        timeout: 10000, // Added timeout for better error handling
+      });
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const data = await response.json();
+      setMachineries(data);
+    } catch (error) {
+      Alert.alert("Error", `Failed to fetch machineries: ${error.message}`);
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
   }, []);
 
-  // Options for status management
+  useEffect(() => {
+    fetchMachineries();
+  }, [fetchMachineries]);
+
+  // Status options for the segmented control
   const statusOptions = ["active", "inactive", "engaged"];
   const statusLabels = ["Active", "Inactive", "Engaged"];
 
-  // Update a machinery item’s field
-  const updateMachinery = (id, field, value) => {
+  // Update a machinery item in the state
+  const updateMachinery = (id, updates) => {
     setMachineries((prev) =>
       prev.map((machinery) =>
-        machinery.id === id ? { ...machinery, [field]: value } : machinery
+        machinery.id === id ? { ...machinery, ...updates } : machinery
       )
     );
   };
@@ -68,6 +96,7 @@ const ManageMachineryScreen = () => {
           onPress: () => {
             setMachineries((prev) => prev.filter((m) => m.id !== id));
             setModalVisible(false);
+            Alert.alert("Success", "Machinery removed successfully");
           },
         },
       ],
@@ -75,52 +104,68 @@ const ManageMachineryScreen = () => {
     );
   };
 
-  // Open modal and initialize modal state
+  // Open the modal with temporary state
   const openModal = (item) => {
     setSelectedMachinery(item);
-    setModalStatus(item.status);
-    setModalHourlyRate(String(item.hourlyRate));
-    setModalImage(item.image);
+    setTempModalStatus(item.status);
+    setTempModalHourlyRate(String(item.hourlyRate));
+    setTempModalImage(item.image || null);
     setModalVisible(true);
   };
 
-  // Launch the image picker
+  // Handle image picking with permission check
   const handlePickImage = async () => {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      alert("Permission to access camera roll is required!");
+      Alert.alert(
+        "Permission Required",
+        "Permission to access camera roll is required!"
+      );
       return;
     }
-    let pickerResult = await ImagePicker.launchImageLibraryAsync({
+    const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
-    if (!pickerResult.cancelled) {
-      setModalImage(pickerResult.uri);
+    if (!pickerResult.canceled) {
+      setTempModalImage(pickerResult.assets[0].uri);
     }
   };
 
-  // Remove the currently selected image
+  // Remove the selected image
   const handleRemoveImage = () => {
-    setModalImage(null);
+    setTempModalImage(null);
   };
 
-  // Save the changes from the modal
+  // Save changes with validation
   const handleSave = () => {
+    const hourlyRate = parseFloat(tempModalHourlyRate);
+    if (isNaN(hourlyRate) || hourlyRate < 0) {
+      Alert.alert("Invalid Input", "Hourly rate must be a positive number");
+      return;
+    }
     if (selectedMachinery) {
-      updateMachinery(selectedMachinery.id, "status", modalStatus);
-      updateMachinery(selectedMachinery.id, "hourlyRate", modalHourlyRate);
-      updateMachinery(selectedMachinery.id, "image", modalImage);
+      updateMachinery(selectedMachinery.id, {
+        status: tempModalStatus,
+        hourlyRate,
+        image: tempModalImage,
+      });
+      Alert.alert("Success", "Machinery updated successfully");
     }
     setModalVisible(false);
   };
 
-  // Render each machinery tile as a modern card
+  // Render each machinery item as a card
   const renderTile = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => openModal(item)}
+      accessible={true}
+      accessibilityLabel={`Machinery: ${item.title}, Status: ${item.status}, Hourly Rate: ${item.hourlyRate}`}
+    >
       {item.image ? (
         <Image source={{ uri: item.image }} style={styles.cardImage} />
       ) : (
@@ -136,6 +181,14 @@ const ManageMachineryScreen = () => {
     </TouchableOpacity>
   );
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.header}>Manage Machinery</Text>
@@ -144,6 +197,15 @@ const ManageMachineryScreen = () => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderTile}
         contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={fetchMachineries}
+          />
+        }
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No machinery items found.</Text>
+        }
       />
 
       {/* Modal for Editing Machinery */}
@@ -156,15 +218,19 @@ const ManageMachineryScreen = () => {
                   <Text style={styles.modalHeader}>
                     {selectedMachinery.title}
                   </Text>
-                  <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <TouchableOpacity
+                    onPress={() => setModalVisible(false)}
+                    accessible={true}
+                    accessibilityLabel="Close modal"
+                  >
                     <Icon name="close" size={24} color={COLORS.SECONDARY} />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.imageContainer}>
-                  {modalImage ? (
+                  {tempModalImage ? (
                     <Image
-                      source={{ uri: modalImage }}
+                      source={{ uri: tempModalImage }}
                       style={styles.modalImage}
                     />
                   ) : (
@@ -192,12 +258,12 @@ const ManageMachineryScreen = () => {
                   <Text style={styles.modalLabel}>Status:</Text>
                   <SegmentedControl
                     values={statusLabels}
-                    selectedIndex={statusOptions.indexOf(modalStatus)}
-                    onChange={(event) => {
-                      const newStatus =
-                        statusOptions[event.nativeEvent.selectedSegmentIndex];
-                      setModalStatus(newStatus);
-                    }}
+                    selectedIndex={statusOptions.indexOf(tempModalStatus)}
+                    onChange={(event) =>
+                      setTempModalStatus(
+                        statusOptions[event.nativeEvent.selectedSegmentIndex]
+                      )
+                    }
                     style={styles.segmentedControl}
                     tintColor={COLORS.PRIMARY}
                     backgroundColor={COLORS.INPUT_BG}
@@ -209,8 +275,10 @@ const ManageMachineryScreen = () => {
                   <TextInput
                     style={styles.input}
                     keyboardType="numeric"
-                    value={modalHourlyRate}
-                    onChangeText={setModalHourlyRate}
+                    value={tempModalHourlyRate}
+                    onChangeText={setTempModalHourlyRate}
+                    placeholder="Enter hourly rate"
+                    accessibilityLabel="Hourly rate input"
                   />
                 </View>
                 <View style={styles.modalActions}>
@@ -225,7 +293,6 @@ const ManageMachineryScreen = () => {
                   >
                     <Text style={styles.modalButtonText}>Remove</Text>
                   </TouchableOpacity>
-           
                   <TouchableOpacity
                     style={[
                       styles.modalButton,
@@ -255,7 +322,10 @@ const ManageMachineryScreen = () => {
               <TouchableOpacity
                 key={item.id}
                 style={styles.bottomSheetItem}
-                onPress={() => openModal(item)}
+                onPress={() => {
+                  openModal(item);
+                  setShowFarmList(false);
+                }}
               >
                 <Text style={styles.bottomSheetItemText}>{item.title}</Text>
               </TouchableOpacity>
@@ -310,7 +380,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cardPlaceholderText: {
-    color: "white",
+    color: COLORS.SECONDARY || "#757575",
     fontSize: 16,
   },
   cardContent: {
@@ -355,7 +425,7 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: 16,
     color: COLORS.SECONDARY || "#757575",
-    marginBottom: 8,
+    marginRight: 10,
   },
   row: {
     flexDirection: "row",
@@ -373,6 +443,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
+    backgroundColor: "#fff",
   },
   imageContainer: {
     alignItems: "center",
@@ -443,6 +514,12 @@ const styles = StyleSheet.create({
   bottomSheetItemText: {
     fontSize: 16,
     color: COLORS.SECONDARY || "#757575",
+  },
+  emptyText: {
+    textAlign: "center",
+    color: COLORS.SECONDARY || "#757575",
+    fontSize: 16,
+    marginTop: 20,
   },
 });
 
