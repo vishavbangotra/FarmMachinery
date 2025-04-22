@@ -17,6 +17,8 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import { BottomSheet } from "react-native-btr";
 import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics"; // For haptic feedback
+import AuthContext from "../../context/AuthContext";
+import * as SecureStore from "expo-secure-store";
 
 // App constants
 const COLORS = {
@@ -26,6 +28,8 @@ const COLORS = {
   TEXT: "#1C2526", // Darker text for contrast
   BORDER: "#E5E5EA", // Subtle border color
 };
+
+const API_BASE_URL = "http://10.0.2.2:8080";
 
 const MapScreen = ({ route, navigation }) => {
   const savedFarms = [
@@ -42,6 +46,7 @@ const MapScreen = ({ route, navigation }) => {
   ];
 
   // State declarations
+  const {userId} = AuthContext
   const [farms, setFarms] = useState([]);
   const [region, setRegion] = useState(null);
   const [addingFarm, setAddingFarm] = useState(false);
@@ -116,11 +121,49 @@ const MapScreen = ({ route, navigation }) => {
     );
   };
 
-  const handleAddFarm = async (farm) => {
-    const newFarm = { ...farm, id: Date.now().toString() };
-    setFarms([...farms, newFarm]);
+const handleAddFarm = async (farm) => {
+  try {
+    // Retrieve and validate the authentication token
+    const authToken = await SecureStore.getItemAsync("jwt");
+    if (!authToken) {
+      throw new Error("No authentication token found");
+    }
+
+    // Make the POST request to add the farm
+    const response = await fetch(`${API_BASE_URL}/api/farms/add`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(farm), // Send farm without a local ID
+    });
+
+    // Handle HTTP errors
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error("Unauthorized: Invalid or expired token");
+      } else if (response.status === 400) {
+        const errorData = await response.json();
+        throw new Error(`Bad Request: ${errorData.message || 'Invalid farm data'}`);
+      } else {
+        throw new Error(`Error adding farm: ${response.status}`);
+      }
+    }
+
+    // Parse the new farm ID from the response
+    const newFarmId = await response.json();
+    const newFarm = { ...farm, id: newFarmId };
+
+    // Update the state with the new farm
+    setFarms(prevFarms => [...prevFarms, newFarm]);
+
     return newFarm;
-  };
+  } catch (error) {
+    console.error("Error in handleAddFarm:", error);
+    throw error; // Re-throw for the caller to handle
+  }
+};
 
   const handleMapPress = (e) => {
     if (addingFarm) {
@@ -149,7 +192,7 @@ const MapScreen = ({ route, navigation }) => {
       setIsSaving(true);
       try {
         const newFarm = {
-          name: farmName,
+          description: farmName,
           latitude: tempLocation.latitude,
           longitude: tempLocation.longitude,
         };
@@ -461,6 +504,7 @@ const styles = StyleSheet.create({
   farmItem: {
     padding: 15,
     backgroundColor: "#fff",
+    color: "black",
     borderRadius: 10,
     marginBottom: 5,
     elevation: 1,

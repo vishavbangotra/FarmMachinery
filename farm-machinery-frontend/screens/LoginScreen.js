@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as CONSTANTS from "../constants/styles";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../context/AuthContext";
 import { useContext } from "react";
 import * as SecureStore from "expo-secure-store";
@@ -84,6 +83,9 @@ const LoginScreen = ({ navigation }) => {
       if (data.success) {
         await SecureStore.setItemAsync("jwt", data.token);
         setIsAuthenticated(true);
+        if(data.IsNewUser){
+          navigation.navigate("Profile");
+        }
       } else {
         throw new Error(data.message || "OTP verification failed");
       }

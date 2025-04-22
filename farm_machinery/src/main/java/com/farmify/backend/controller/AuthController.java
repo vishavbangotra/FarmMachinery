@@ -60,11 +60,14 @@ public class AuthController {
                     .create();
 
             if ("approved".equalsIgnoreCase(verificationCheck.getStatus())) {
+                boolean isNewUser = false;
                 if(userService.findByPhoneNumber(request.getPhoneNumber()) == null) {
                     userService.createUser(request.getPhoneNumber());
+                    isNewUser = true;
                 }
-                String token = jwtService.generateToken(request.getPhoneNumber());
-                return ResponseEntity.ok(new AuthResponse(true, "Login successful", token));
+                Long userId = userService.findByPhoneNumber(request.getPhoneNumber()).getId();
+                String token = jwtService.generateToken(userId, request.getPhoneNumber());
+                return ResponseEntity.ok(new AuthResponse(true, "Login successful", token, isNewUser));
             } else {
                 logger.warn("Invalid OTP for phone number: {}", request.getPhoneNumber());
                 return ResponseEntity.ok(new OtpResponse(false, "Invalid OTP", verificationCheck.getStatus()));

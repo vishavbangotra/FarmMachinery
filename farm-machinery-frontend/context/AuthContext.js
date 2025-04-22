@@ -5,7 +5,7 @@ import { jwtDecode } from "jwt-decode";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState(null);
 
   // Helper function to check if token is expired
