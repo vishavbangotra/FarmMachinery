@@ -1,278 +1,236 @@
-import React, { useState } from "react";
+// screens/MachineryScreen.js
+import React, { useState, useEffect } from "react";
 import {
+  SafeAreaView,
   View,
   Text,
-  FlatList,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
+  FlatList,
 } from "react-native";
-import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
-import * as Haptics from "expo-haptics";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import Icon from "react-native-vector-icons/FontAwesome";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
 
-const MachineryScreen = ({ navigation }) => {
-  const [selectedMachinery, setSelectedMachinery] = useState(null);
+const MACHINES = [
+  { id: "tractor", label: "Tractor", icon: "tractor" },
+  { id: "rotavator", label: "Rotavator", icon: "hammer" },
+  { id: "harvester", label: "Harvester", icon: "crop-harvest" },
+  { id: "landleveller", label: "Land Leveller", icon: "land-plots" },
+  { id: "seeddrill", label: "Seed Drill", icon: "seed" },
+];
+
+export default function MachineryScreen({ navigation }) {
+  const [selectedId, setSelectedId] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [showStart, setShowStart] = useState(false);
+  const [showEnd, setShowEnd] = useState(false);
 
-  const machinery = [
-    "Tractor",
-    "Rotavator",
-    "Harvester",
-    "Land Leveller",
-    "Seed Drill",
-  ];
-
-  const handleSelectMachinery = (item) => {
-    setSelectedMachinery(item);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const onSelectMachine = (id) => {
+    Haptics.selectionAsync();
+    setSelectedId(id);
   };
 
-  const openStartDatePicker = () => {
-    setShowStartDatePicker(true);
+  const onChangeStart = (_, date) => {
+    setShowStart(false);
+    if (date) setStartDate(date);
   };
 
-  const openEndDatePicker = () => {
-    setShowEndDatePicker(true);
+  const onChangeEnd = (_, date) => {
+    setShowEnd(false);
+    if (date) setEndDate(date);
   };
 
-  const formatDate = (date) => date.toLocaleDateString();
+   useEffect(() => {
+     const today = new Date();
+     const yesterday = new Date();
+     yesterday.setDate(today.getDate() - 1);
+     setStartDate(yesterday);
+     setEndDate(today);
+   }, []);
 
-  const isValidDateRange = startDate && endDate && endDate > startDate;
+  const validRange = startDate && endDate && endDate > startDate;
+  const canProceed = selectedId && validRange;
+  const format = (d) => d.toLocaleDateString();
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.item, selectedMachinery === item && styles.selectedItem]}
-      onPress={() => handleSelectMachinery(item)}
-    >
-      <Text
-        style={[
-          styles.itemText,
-          selectedMachinery === item && styles.selectedItemText,
-        ]}
+  const renderItem = ({ item }) => {
+    const selected = item.id === selectedId;
+    return (
+      <Pressable
+        style={[styles.card, selected && styles.cardSelected]}
+        onPress={() => onSelectMachine(item.id)}
+        android_ripple={{ color: COLORS.PRIMARY + "33" }}
+        accessibilityRole="button"
+        accessibilityLabel={item.label}
       >
-        {item}
-      </Text>
-      {selectedMachinery === item && (
-        <Icon
-          name="check"
-          size={20}
-          color={COLORS.PRIMARY}
-          style={styles.checkIcon}
-        />
-      )}
-    </TouchableOpacity>
-  );
+        <View style={[styles.iconCircle, selected && styles.iconSelected]}>
+          <MaterialCommunityIcons
+            name={item.icon}
+            size={24}
+            color={selected ? COLORS.BACKGROUND : COLORS.TEXT_LIGHT}
+          />
+        </View>
+        <Text style={[styles.cardText, selected && styles.textSelected]}>
+          {item.label}
+        </Text>
+        {selected && (
+          <MaterialCommunityIcons
+            name="check-circle"
+            size={20}
+            color={COLORS.ACCENT}
+          />
+        )}
+      </Pressable>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Select Machinery</Text>
-      <View style={styles.dateSection}>
-        <View>
-          <TouchableOpacity
-            onPress={openStartDatePicker}
-            style={styles.dateButton}
-          >
-            <View style={styles.dateButtonContent}>
-              <Icon
-                name="calendar"
-                size={20}
-                color={COLORS.PRIMARY}
-                style={{ marginRight: SIZES.MARGIN_SMALL }}
-              />
-              <Text style={styles.dateText}>
-                {startDate ? formatDate(startDate) : "Select Start Date"}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-        <View>
-          <TouchableOpacity
-            onPress={openEndDatePicker}
-            style={styles.dateButton}
-          >
-            <View style={styles.dateButtonContent}>
-              <Icon
-                name="calendar"
-                size={20}
-                color={COLORS.PRIMARY}
-                style={{ marginRight: SIZES.MARGIN_SMALL }}
-              />
-              <Text style={styles.dateText}>
-                {endDate ? formatDate(endDate) : "Select End Date"}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
-      <View>
-        {startDate && endDate && !isValidDateRange && (
-          <Text style={styles.errorText}>
-            End date must be after start date
+      <View style={styles.dateRow}>
+        <Pressable style={styles.dateButton} onPress={() => setShowStart(true)}>
+          <MaterialCommunityIcons
+            name="calendar-month"
+            size={20}
+            color={COLORS.SECONDARY}
+          />
+          <Text style={styles.dateText}>
+            {startDate ? format(startDate) : "Start Date"}
           </Text>
-        )}
+        </Pressable>
+        <Pressable style={styles.dateButton} onPress={() => setShowEnd(true)}>
+          <MaterialCommunityIcons
+            name="calendar-range"
+            size={20}
+            color={COLORS.SECONDARY}
+          />
+          <Text style={styles.dateText}>
+            {endDate ? format(endDate) : "End Date"}
+          </Text>
+        </Pressable>
       </View>
+      {!validRange && startDate && endDate && (
+        <Text style={styles.errorText}>End date must be after start date</Text>
+      )}
+
       <FlatList
-        data={machinery}
-        numColumns={2}
+        data={MACHINES}
+        keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        keyExtractor={(item) => item}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={styles.list}
       />
-      <TouchableOpacity
-        style={[
-          styles.button,
-          (!selectedMachinery || !startDate || !endDate || !isValidDateRange) &&
-            styles.buttonDisabled,
-        ]}
+
+      <Pressable
+        style={[GLOBAL_STYLES.button, !canProceed && styles.buttonDisabled]}
         onPress={() =>
           navigation.navigate("Map", {
-            machinery: selectedMachinery,
+            machinery: selectedId,
             startDate: startDate.toISOString(),
             endDate: endDate.toISOString(),
           })
         }
-        disabled={
-          !selectedMachinery || !startDate || !endDate || !isValidDateRange
-        }
+        disabled={!canProceed}
       >
-        <Text style={styles.buttonText}>Next</Text>
-      </TouchableOpacity>
-      {showStartDatePicker && (
+        <Text style={GLOBAL_STYLES.buttonText}>Next</Text>
+      </Pressable>
+
+      {showStart && (
         <DateTimePicker
           value={startDate || new Date()}
           mode="date"
-          display="default"
-          onChange={(event, selectedDate) => {
-            setShowStartDatePicker(false);
-            if (selectedDate) setStartDate(selectedDate);
-          }}
+          display="spinner"
+          onChange={onChangeStart}
         />
       )}
-      {showEndDatePicker && (
+      {showEnd && (
         <DateTimePicker
           value={endDate || new Date()}
           mode="date"
-          display="default"
-          onChange={(event, selectedDate) => {
-            setShowEndDatePicker(false);
-            if (selectedDate) setEndDate(selectedDate);
-          }}
+          display="spinner"
+          onChange={onChangeEnd}
         />
       )}
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: SIZES.PADDING,
     backgroundColor: COLORS.BACKGROUND,
+    padding: SIZES.PADDING,
   },
-  title: {
+  header: {
     fontSize: SIZES.TITLE,
-    fontFamily: FONTS.BOLD,
+    fontFamily: FONTS.MEDIUM,
     color: COLORS.TEXT_LIGHT,
-    marginBottom: SIZES.MARGIN_LARGE,
     textAlign: "center",
-  },
-  dateSection: {
     marginBottom: SIZES.MARGIN_LARGE,
-    display: "flex",
+  },
+  dateRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-  },
-  dateLabel: {
-    fontSize: SIZES.INFO_TEXT,
-    fontFamily: FONTS.REGULAR,
-    color: COLORS.TEXT_LIGHT,
-    marginRight: SIZES.MARGIN_SMALL,
+    marginBottom: SIZES.MARGIN_MEDIUM,
   },
   dateButton: {
-    padding: SIZES.PADDING_SM,
-    borderRadius: SIZES.BORDER_RADIUS,
-    borderWidth: 1,
-    borderColor: COLORS.PRIMARY,
-  },
-  dateButtonContent: {
     flexDirection: "row",
-    alignItems: "center"
+    alignItems: "center",
+    backgroundColor: COLORS.PRIMARY,
+    padding: SIZES.PADDING_SM,
+    borderRadius: SIZES.BORDER_RADIUS
   },
   dateText: {
-    fontSize: SIZES.INFO_TEXT,
-    fontFamily: FONTS.REGULAR,
-    color: COLORS.PRIMARY,
-  },
-  errorText: {
-    fontSize: SIZES.INFO_TEXT,
-    fontFamily: FONTS.REGULAR,
-    color: COLORS.ACCENT,
-    marginTop: SIZES.MARGIN_SMALL,
-  },
-  listContainer: {
-    paddingBottom: SIZES.MARGIN_LARGE,
-  },
-  item: {
-    flex: 1,
-    padding: SIZES.PADDING,
-    backgroundColor: COLORS.PRIMARY,
-    margin: SIZES.MARGIN_SMALL,
-    borderRadius: SIZES.BORDER_RADIUS,
-    borderWidth: 1,
-    borderColor: COLORS.PRIMARY,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  selectedItem: {
-    borderColor: COLORS.PRIMARY,
-    backgroundColor: "#E6F7E6",
-  },
-  itemText: {
+    marginLeft: SIZES.SPACING,
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.REGULAR,
     color: COLORS.TEXT_LIGHT,
   },
-  selectedItemText: {
-    color: COLORS.PRIMARY,
-    fontFamily: FONTS.BOLD,
+  errorText: {
+    color: COLORS.ACCENT,
+    fontSize: SIZES.INFO_TEXT,
+    marginBottom: SIZES.MARGIN_MEDIUM,
+    textAlign: "center",
   },
-  checkIcon: {
-    position: "absolute",
-    top: 5,
-    right: 5,
+  list: {
+    paddingBottom: SIZES.MARGIN_LARGE,
   },
-  button: {
-    backgroundColor: COLORS.PRIMARY,
-    padding: SIZES.PADDING,
-    borderRadius: SIZES.BORDER_RADIUS,
+  card: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: SIZES.MARGIN_LARGE,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    backgroundColor: COLORS.SECONDARY,
+    borderRadius: SIZES.BORDER_RADIUS,
+    padding: SIZES.PADDING,
+    marginVertical: SIZES.SPACING,
+  },
+  cardSelected: {
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.ACCENT,
+    backgroundColor: COLORS.SECONDARY + "CC",
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.PRIMARY,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: SIZES.MARGIN_MEDIUM,
+  },
+  iconSelected: {
+    backgroundColor: COLORS.ACCENT,
+  },
+  cardText: {
+    flex: 1,
+    fontSize: SIZES.INFO_TEXT,
+    fontFamily: FONTS.MEDIUM,
+    color: COLORS.TEXT_LIGHT,
+  },
+  textSelected: {
+    color: COLORS.TEXT_LIGHT,
+    fontFamily: FONTS.MEDIUM,
   },
   buttonDisabled: {
-    backgroundColor: COLORS.TEXT_SECONDARY,
-  },
-  buttonText: {
-    color: COLORS.ON_PRIMARY,
-    fontSize: SIZES.BUTTON_TEXT,
-    fontFamily: FONTS.BOLD,
+    backgroundColor: COLORS.TEXT_DARK,
   },
 });
-
-export default MachineryScreen;
-

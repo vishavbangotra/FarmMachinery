@@ -2,6 +2,7 @@ package com.farmify.backend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -61,5 +62,18 @@ public class FarmController {
         return farmService.findFarmById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteFarm(@PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+        // Check if Authorization header is valid
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String token = authorizationHeader.substring("Bearer ".length()).trim();
+        farmService.deleteFarm(id);
+        return ResponseEntity.noContent().build();
     }
 }

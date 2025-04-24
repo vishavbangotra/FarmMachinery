@@ -1,30 +1,70 @@
 // screens/Home.js
 import React from "react";
-import { View, Text, StyleSheet, SafeAreaView } from "react-native";
+import {
+  SafeAreaView,
+  FlatList,
+  StyleSheet,
+  View,
+  Text,
+  Pressable,
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS, SIZES, FONTS } from "../../constants/styles";
-import { FlatList } from "react-native-gesture-handler";
-import Tile from "../../components/Tile";
 
-const HireOutScreen = ({ navigation }) => {
+const TILES = [
+  {
+    id: "add",
+    title: "Add Machinery",
+    description: "Add a new machinery to your farm",
+    iconName: "tractor",
+    screen: "AddMachinery",
+  },
+  {
+    id: "manage",
+    title: "Manage Machinery",
+    description: "Manage your farm machinery",
+    iconName: "wrench",
+    screen: "ManageMachinery",
+  },
+  {
+    id: "bookings",
+    title: "Bookings",
+    description: "View your bookings",
+    iconName: "calendar",
+    screen: "BookingList",
+  },
+];
+
+const HomeScreen = ({ navigation }) => {
+  const renderTile = ({ item }) => (
+    <Pressable
+      onPress={() => navigation.navigate(item.screen)}
+      style={({ pressed }) => [styles.tile, pressed && styles.tilePressed]}
+      android_ripple={{ color: COLORS.RIPPLE }}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}, ${item.description}`}
+    >
+      <View style={styles.iconWrapper}>
+        <MaterialCommunityIcons
+          name={item.iconName}
+          size={32}
+          color={COLORS.WHITE}
+        />
+      </View>
+      <View style={styles.textWrapper}>
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.description}>{item.description}</Text>
+      </View>
+    </Pressable>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      <Tile
-        title="Add Machinery"
-        description="Add a new machinery to your farm"
-        icon={<Text>🚜</Text>}
-        onPress={() => navigation.navigate("AddMachinery")}
-      />
-      <Tile
-        title="Manage Machinery"
-        description="Manage your farm machinery"
-        icon={<Text>🔧</Text>}
-        onPress={() => navigation.navigate("ManageMachinery")}
-      />
-      <Tile
-        title="Bookings"
-        description="View your bookings"
-        icon={<Text>📅</Text>}
-        onPress={() => navigation.navigate("BookingList")}
+      <FlatList
+        data={TILES}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTile}
+        contentContainerStyle={styles.listContainer}
       />
     </SafeAreaView>
   );
@@ -34,14 +74,50 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
-    justifyContent: "center",
+  },
+  listContainer: {
+    padding: SIZES.PADDING,
+  },
+  tile: {
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: COLORS.SECONDARY,
+    borderRadius: SIZES.BORDER_RADIUS,
+    padding: SIZES.PADDING,
+    marginBottom: SIZES.MARGIN_MEDIUM,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tilePressed: {
+    opacity: 0.7,
+  },
+  iconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.PRIMARY,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: SIZES.MARGIN_MEDIUM,
+  },
+  textWrapper: {
+    flex: 1,
   },
   title: {
-    fontSize: SIZES.TITLE,
-    fontWeight: FONTS.BOLD,
-    color: COLORS.SECONDARY,
+    fontSize: SIZES.H2,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.TEXT_DARK,
+    marginBottom: 4,
+  },
+  description: {
+    fontSize: SIZES.BODY,
+    fontWeight: 800,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.TEXT_DARK,
   },
 });
 
-export default HireOutScreen;
+export default HomeScreen;

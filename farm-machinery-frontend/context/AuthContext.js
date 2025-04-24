@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
         if (token && isTokenValid(token)) {
           setIsAuthenticated(true);
           const decoded = jwtDecode(token);
-          setPhoneNumber(decoded.sub);
+          setPhoneNumber(decoded.phoneNumber);
         } else {
           // If the token is not present or is invalid/expired, ensure state is reset
           setIsAuthenticated(false);

@@ -135,7 +135,7 @@ const LoginScreen = ({ navigation }) => {
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
               placeholder="Enter your phone number"
-              placeholderTextColor={CONSTANTS.COLORS.PLACEHOLDER}
+              placeholderTextColor={CONSTANTS.COLORS.TEXT_DARK}
               maxLength={10}
             />
           </View>
@@ -214,13 +214,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontFamily: CONSTANTS.FONTS.BOLD,
-    color: CONSTANTS.COLORS.TEXT,
+    color: CONSTANTS.COLORS.TEXT_LIGHT,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     fontFamily: CONSTANTS.FONTS.REGULAR,
-    color: CONSTANTS.COLORS.SUBTEXT,
+    color: CONSTANTS.COLORS.SECONDARY,
     marginBottom: 40,
   },
   formContainer: {
@@ -233,13 +233,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   input: {
-    backgroundColor: CONSTANTS.COLORS.INPUT_BG,
+    backgroundColor: CONSTANTS.COLORS.SECONDARY,
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
-    color: CONSTANTS.COLORS.TEXT,
-    borderWidth: 1,
-    borderColor: CONSTANTS.COLORS.BORDER,
+    color: CONSTANTS.COLORS.TEXT_DARK,
   },
   countryCode: {
     width: 80,
@@ -275,28 +273,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: CONSTANTS.COLORS.BORDER,
-    backgroundColor: CONSTANTS.COLORS.INPUT_BG,
+    backgroundColor: CONSTANTS.COLORS.SECONDARY,
     textAlign: "center",
     fontSize: 18,
-    color: CONSTANTS.COLORS.TEXT,
+    color: CONSTANTS.COLORS.TEXT_DARK,
   },
   otpTitle: {
     fontSize: 20,
     fontFamily: CONSTANTS.FONTS.BOLD,
-    color: CONSTANTS.COLORS.TEXT,
+    color: CONSTANTS.COLORS.TEXT_LIGHT,
     marginBottom: 8,
   },
   otpSubtitle: {
     fontSize: 14,
     fontFamily: CONSTANTS.FONTS.REGULAR,
-    color: CONSTANTS.COLORS.SUBTEXT,
+    color: CONSTANTS.COLORS.TEXT_LIGHT,
     marginBottom: 32,
   },
   resendContainer: {
     marginTop: 16,
   },
   resendText: {
-    color: CONSTANTS.COLORS.SUBTEXT,
+    color: CONSTANTS.COLORS.TEXT_LIGHT,
     fontFamily: CONSTANTS.FONTS.REGULAR,
   },
   resendLink: {

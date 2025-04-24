@@ -1,17 +1,20 @@
 import React from "react";
-import { createBottomTabNavigator, Navigator } from "@react-navigation/bottom-tabs";
+import {
+  createBottomTabNavigator,
+  Navigator,
+} from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons"; // Assuming Expo is used
 import { COLORS } from "../constants/styles"; // Assuming constants are in a separate file
 import { createStackNavigator } from "@react-navigation/stack";
 import HomeScreen from "../screens/HomeScreen";
 import MachineryScreen from "../screens/HireIn/MachineryScreen";
 import MachinerySearchScreen from "../screens/HireIn/MachinerySearchScreen";
-import MapScreen from "../screens/HireIn/MapScreen";
+import FarmSelectScreen from "../screens/HireIn/FarmSelectScreen";
 import MachinerySearchDetailScreen from "../screens/HireIn/MachinerySearchDetailScreen";
 import HireOutScreen from "../screens/HireOut/HireOutScreen";
 import AddMachineryScreen from "../screens/HireOut/AddMachineryScreen";
 import ManageMachineryScreen from "../screens/HireOut/ManageMachineryScreen";
-import BookingListScreen from "../screens/HireOut/BookingListScreen"; 
+import BookingListScreen from "../screens/HireOut/BookingListScreen";
 import AddFarmForMachineryScreen from "../screens/HireOut/AddFarmForMachineryScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 
@@ -20,11 +23,19 @@ const Stack = createStackNavigator();
 const AppNavigator = () => {
   return (
     <Stack.Navigator initialRouteName="Home">
-      <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }}/>
+      <Stack.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen
         name="Machinery"
         component={MachineryScreen}
-        options={{ headerShown: false }}
+        options={{
+          title: "Select Machinery",
+          headerStyle: { backgroundColor: COLORS.BACKGROUND },
+          headerTintColor: COLORS.TEXT_LIGHT,
+        }}
       />
       <Stack.Screen
         name="Profile"
@@ -38,8 +49,12 @@ const AppNavigator = () => {
       />
       <Stack.Screen
         name="Map"
-        component={MapScreen}
-        options={{ title: "Map" }}
+        component={FarmSelectScreen}
+        options={{
+          title: "Select Farm",
+          headerStyle: { backgroundColor: COLORS.BACKGROUND },
+          headerTintColor: COLORS.TEXT_LIGHT 
+        }}
       />
 
       <Stack.Screen
@@ -47,13 +62,25 @@ const AppNavigator = () => {
         component={MachinerySearchDetailScreen}
         options={{ title: "Search Machinery" }}
       />
-      <Stack.Screen name="HireOut" component={HireOutScreen} />
+      <Stack.Screen
+        name="HireOut"
+        component={HireOutScreen}
+        options={{
+          title: "Hire Out",
+          headerStyle: { backgroundColor: COLORS.BACKGROUND },
+          headerTintColor: COLORS.TEXT_LIGHT,
+        }}
+      />
       <Stack.Screen
         name="AddMachinery"
         component={AddMachineryScreen}
-        options={{ title: "Add Machinery", headerStyle: { backgroundColor: COLORS.BACKGROUND }, headerTintColor: COLORS.TEXT_LIGHT }}
+        options={{
+          title: "Add Machinery",
+          headerStyle: { backgroundColor: COLORS.BACKGROUND },
+          headerTintColor: COLORS.TEXT_LIGHT,
+        }}
       />
-      <Stack.Screen name="ManageMachinery" component={ManageMachineryScreen} />
+      <Stack.Screen name="ManageMachinery" component={ManageMachineryScreen} options={{ title: "Your Machinery", headerStyle: { backgroundColor: COLORS.BACKGROUND }, headerTintColor: COLORS.TEXT_LIGHT }}/>
       <Stack.Screen name="BookingList" component={BookingListScreen} />
       <Stack.Screen
         name="AddFarmForMachineryScreen"

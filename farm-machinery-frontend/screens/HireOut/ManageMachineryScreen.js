@@ -191,7 +191,6 @@ const ManageMachineryScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Manage Machinery</Text>
       <FlatList
         data={machineries}
         keyExtractor={(item) => item.id.toString()}

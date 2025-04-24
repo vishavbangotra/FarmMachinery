@@ -16,36 +16,29 @@ import { FAB, Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { BottomSheet } from "react-native-btr";
 import Slider from "@react-native-community/slider";
-import * as Haptics from "expo-haptics"; // For haptic feedback
-import AuthContext from "../../context/AuthContext";
+import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
 
-// App constants
-const COLORS = {
-  PRIMARY: "#34C759", // Softer green for elegance
-  SECONDARY: "#F2F2F7", // Light gray for backgrounds
-  ACCENT: "#5856D6", // Vibrant purple for highlights
-  TEXT: "#1C2526", // Darker text for contrast
-  BORDER: "#E5E5EA", // Subtle border color
-};
+import { COLORS, SIZES, FONTS } from "../../constants/styles";
 
 const API_BASE_URL = "http://10.0.2.2:8080";
 
-const MapScreen = ({ route, navigation }) => {
+const FarmSelectScreen = ({ route, navigation }) => {
   const savedFarms = [
     {
       id: "1",
       name: "Farm Jammu Auto",
-      location: { latitude: 32.7300307600586, longitude: 74.85615100711584 },
+      latitude: 32.7300307600586,
+      longitude: 74.85615100711584,
     },
     {
       id: "1742126686607",
       name: "Farm Jammu 2",
-      location: { latitude: 32.72915219022547, longitude: 74.85791858285666 },
+      latitude: 32.72915219022547,
+      longitude: 74.85791858285666,
     },
   ];
 
-  // State declarations
   const [farms, setFarms] = useState([]);
   const [region, setRegion] = useState(null);
   const [addingFarm, setAddingFarm] = useState(false);
@@ -57,10 +50,11 @@ const MapScreen = ({ route, navigation }) => {
   const [showFarmList, setShowFarmList] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [distance, setDistance] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [farmToDelete, setFarmToDelete] = useState(null);
   const mapRef = useRef(null);
-  const fabScale = useRef(new Animated.Value(1)).current; // For FAB animations
+  const fabScale = useRef(new Animated.Value(1)).current;
 
-  // Set default selected farm and center map
   useEffect(() => {
     if (farms.length > 0 && !selectedFarm) {
       const defaultFarm = farms[0];
@@ -84,7 +78,6 @@ const MapScreen = ({ route, navigation }) => {
     fetchFarms();
   }, []);
 
-  // Request location permissions
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -104,7 +97,6 @@ const MapScreen = ({ route, navigation }) => {
     })();
   }, []);
 
-  // Handlers
   const handleSelectFarm = (farm) => {
     setSelectedFarm(farm);
     setShowFarmList(false);
@@ -120,49 +112,29 @@ const MapScreen = ({ route, navigation }) => {
     );
   };
 
-const handleAddFarm = async (farm) => {
-  try {
-    // Retrieve and validate the authentication token
-    const authToken = await SecureStore.getItemAsync("jwt");
-    if (!authToken) {
-      throw new Error("No authentication token found");
-    }
-
-    // Make the POST request to add the farm
-    const response = await fetch(`${API_BASE_URL}/api/farms/add`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${authToken}`,
-      },
-      body: JSON.stringify(farm), // Send farm without a local ID
-    });
-
-    // Handle HTTP errors
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error("Unauthorized: Invalid or expired token");
-      } else if (response.status === 400) {
-        const errorData = await response.json();
-        throw new Error(`Bad Request: ${errorData.message || 'Invalid farm data'}`);
-      } else {
+  const handleAddFarm = async (farm) => {
+    try {
+      const authToken = await SecureStore.getItemAsync("jwt");
+      if (!authToken) throw new Error("No authentication token found");
+      const response = await fetch(`${API_BASE_URL}/api/farms/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(farm),
+      });
+      if (!response.ok)
         throw new Error(`Error adding farm: ${response.status}`);
-      }
+      const newFarmId = await response.json();
+      const newFarm = { ...farm, id: newFarmId };
+      setFarms((prevFarms) => [...prevFarms, newFarm]);
+      return newFarm;
+    } catch (error) {
+      console.error("Error in handleAddFarm:", error);
+      throw error;
     }
-
-    // Parse the new farm ID from the response
-    const newFarmId = await response.json();
-    const newFarm = { ...farm, id: newFarmId };
-
-    // Update the state with the new farm
-    setFarms(prevFarms => [...prevFarms, newFarm]);
-
-    return newFarm;
-  } catch (error) {
-    console.error("Error in handleAddFarm:", error);
-    throw error; // Re-throw for the caller to handle
-  }
-};
+  };
 
   const handleMapPress = (e) => {
     if (addingFarm) {
@@ -227,20 +199,59 @@ const handleAddFarm = async (farm) => {
       }
     }
   };
+  const deleteFarmRequest = async () => {
+    try {
+      const authToken = await SecureStore.getItemAsync("jwt");
+      if (!authToken) throw new Error("No authentication token found");
+      const response = await fetch(
+        `${API_BASE_URL}/api/farms/delete/${farmToDelete}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      if (!response.ok)
+        throw new Error(`Error deleting farm: ${response.status}`);
+    } catch (error) {
+      console.error("Error deleting farm:", error);
+    }
+  }
 
-  // FAB animation
+  const handleDeleteFarm = (farmId) => {
+    setFarmToDelete(farmId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteFarm = async () => {
+    if (farmToDelete) {
+      try {
+        await deleteFarmRequest();
+        setFarms(farms.filter((farm) => farm.id !== farmToDelete));
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setShowDeleteConfirm(false);
+        setFarmToDelete(null);
+        if (selectedFarm?.id === farmToDelete) setSelectedFarm(null);
+      } catch (error) {
+        console.error("Error deleting farm:", error);
+      }
+    }
+  };
+
   const animateFab = () => {
     Animated.spring(fabScale, {
       toValue: 1.1,
       friction: 5,
       useNativeDriver: true,
-    }).start(() => {
+    }).start(() =>
       Animated.spring(fabScale, {
         toValue: 1,
         friction: 5,
         useNativeDriver: true,
-      }).start();
-    });
+      }).start()
+    );
   };
 
   return (
@@ -281,7 +292,6 @@ const handleAddFarm = async (farm) => {
         </MapView>
       )}
 
-      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <Icon
           name="search"
@@ -299,7 +309,6 @@ const handleAddFarm = async (farm) => {
         />
       </View>
 
-      {/* Top Controls */}
       {selectedFarm && (
         <View style={styles.topControlsContainer}>
           <View style={styles.selectedFarmContainer}>
@@ -327,7 +336,6 @@ const handleAddFarm = async (farm) => {
         </View>
       )}
 
-      {/* Floating Action Buttons */}
       <View style={styles.controlsContainer}>
         <Animated.View style={{ transform: [{ scale: fabScale }] }}>
           <FAB
@@ -351,20 +359,19 @@ const handleAddFarm = async (farm) => {
             style={[styles.fab, { backgroundColor: COLORS.PRIMARY }]}
             icon="arrow-right"
             label="Search"
-            onPress={() => {
+            onPress={() =>
               navigation.navigate("MachinerySearch", {
                 farm: selectedFarm,
                 machinery: route.params.machinery,
                 startDate: route.params.startDate,
                 endDate: route.params.endDate,
                 distance,
-              });
-            }}
+              })
+            }
           />
         )}
       </View>
 
-      {/* Bottom Sheet */}
       <BottomSheet
         visible={showFarmList}
         onBackButtonPress={() => setShowFarmList(false)}
@@ -374,19 +381,34 @@ const handleAddFarm = async (farm) => {
           <Text style={styles.bottomSheetTitle}>Select a Farm</Text>
           <ScrollView>
             {farms.map((farm) => (
-              <TouchableOpacity
+              <View
                 key={farm.id}
-                style={styles.farmItem}
-                onPress={() => handleSelectFarm(farm)}
+                style={[
+                  styles.farmItem,
+                  {
+                    backgroundColor:
+                      selectedFarm?.id === farm.id ? COLORS.PRIMARY : "#fff",
+                  },
+                ]}
               >
-                <Text style={styles.farmName}>{farm.name}</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.farmNameContainer}
+                  onPress={() => handleSelectFarm(farm)}
+                >
+                  <Text style={styles.farmName}>{farm.description}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleDeleteFarm(farm.id)}
+                  style={styles.deleteButton}
+                >
+                  <Icon name="trash" size={20} color={COLORS.ACCENT} />
+                </TouchableOpacity>
+              </View>
             ))}
           </ScrollView>
         </View>
       </BottomSheet>
 
-      {/* Modal */}
       <Modal visible={showForm} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -416,11 +438,38 @@ const handleAddFarm = async (farm) => {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={showDeleteConfirm} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Farm</Text>
+            <Text style={styles.modalText}>
+              Are you sure you want to delete this farm?
+            </Text>
+            <View style={styles.modalButtons}>
+              <PaperButton
+                mode="outlined"
+                onPress={() => setShowDeleteConfirm(false)}
+                style={styles.modalButton}
+              >
+                Cancel
+              </PaperButton>
+              <PaperButton
+                mode="contained"
+                color={COLORS.ACCENT}
+                onPress={confirmDeleteFarm}
+                style={styles.modalButton}
+              >
+                Delete
+              </PaperButton>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
-// Custom Map Style (optional)
 const mapStyle = [
   {
     featureType: "road",
@@ -434,7 +483,6 @@ const mapStyle = [
   },
 ];
 
-// Styles
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
@@ -486,7 +534,12 @@ const styles = StyleSheet.create({
   distanceText: { fontSize: 14, color: COLORS.TEXT, marginBottom: 5 },
   slider: { width: "100%", height: 40 },
   controlsContainer: { position: "absolute", bottom: 30, right: 20, gap: 10 },
-  fab: { borderRadius: 30, paddingHorizontal: 10 },
+  fab: {
+    borderRadius: 30,
+    paddingHorizontal: 10,
+    width: 150,
+    marginVertical: 5,
+  },
   bottomSheet: {
     backgroundColor: COLORS.SECONDARY,
     padding: 20,
@@ -501,14 +554,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   farmItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 15,
-    backgroundColor: "#fff",
-    color: "black",
     borderRadius: 10,
     marginBottom: 5,
     elevation: 1,
+    color: COLORS.TEXT_DARK,
   },
-  farmName: { fontSize: 16, color: COLORS.TEXT },
+  farmNameContainer: { flex: 1 },
+  farmName: { fontSize: 16, color: COLORS.TEXT_DARK },
+  deleteButton: { padding: 10 },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
@@ -529,6 +586,21 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.TEXT },
+  modalText: {
+    fontSize: 16,
+    color: COLORS.TEXT,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  modalButton: {
+    flex: 1,
+    marginHorizontal: 5,
+    borderRadius: 10,
+  },
   label: { fontSize: 16, color: COLORS.TEXT, marginBottom: 5 },
   input: {
     height: 50,
@@ -543,4 +615,4 @@ const styles = StyleSheet.create({
   saveButton: { marginTop: 10, borderRadius: 10 },
 });
 
-export default MapScreen;
+export default FarmSelectScreen;
