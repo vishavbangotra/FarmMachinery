@@ -26,8 +26,6 @@ public abstract class Machinery {
     private String imageUrl;
 
     private String modelInfo;
-
-    private String rating;
     
     @ManyToOne
     @JoinColumn(name = "farm_id")
