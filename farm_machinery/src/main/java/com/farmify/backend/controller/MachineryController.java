@@ -1,8 +1,11 @@
 package com.farmify.backend.controller;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -11,22 +14,32 @@ import com.farmify.backend.dto.MachineryDTO;
 import com.farmify.backend.dto.MachinerySearchResultDTO;
 import com.farmify.backend.model.Machinery;
 import com.farmify.backend.service.JwtService;
+import com.farmify.backend.service.MachineryImageService;
 import com.farmify.backend.service.MachineryService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/machinery")
 @RequiredArgsConstructor
 public class MachineryController {
     private final MachineryService machineryService;
+    private final MachineryImageService machineryImageService;
     private final JwtService jwtService;
 
-    @PostMapping("/add")
+    @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("permitAll()")
-    public ResponseEntity<Machinery> addMachinery(@RequestBody MachineryDTO machinery,
+    public ResponseEntity<Machinery> addMachinery(
+            // <-- bind all simple form fields (type, farmId, model, year…) into this DTO:
+            @ModelAttribute MachineryDTO machineryDto,
+
+            // <-- pick up zero-or-more file-parts called "files":
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+
         // Check if Authorization header is valid
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -34,14 +47,20 @@ public class MachineryController {
 
         String token = authorizationHeader.substring("Bearer ".length()).trim();
         Long userId = jwtService.extractUserId(token);
-        machinery.setOwnerId(userId);
+        machineryDto.setOwnerId(userId);
         try {
-            Machinery createdMachinery = machineryService.createMachinery(machinery);
+            Machinery createdMachinery = machineryService.createMachinery(machineryDto);
+            
+            List<Integer> imageNumbers = null;
+            if (files != null && files.size() > 0) {
+                imageNumbers = IntStream.range(1, files.size() + 1).boxed().collect(Collectors.toList());
+            }
+            machineryImageService.uploadImages(createdMachinery.getId(), files, imageNumbers);
             return ResponseEntity.ok(createdMachinery);
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         } catch (IllegalArgumentException e) {
-            System.out.println("Error creating machinery: " + e.getMessage());  
+            System.out.println("Error creating machinery: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         } catch (Exception e) {
             System.out.println("Error creating machinery: " + e.getMessage());
@@ -59,7 +78,7 @@ public class MachineryController {
 
         String token = authorizationHeader.substring("Bearer ".length()).trim();
 
-        if(!jwtService.extractUserId(token).equals(machineryService.getMachineryById(id).getOwner().getId())) {
+        if (!jwtService.extractUserId(token).equals(machineryService.getMachineryById(id).getOwner().getId())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         machineryService.deleteMachinery(id);

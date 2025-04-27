@@ -133,7 +133,7 @@ public class MachineryService {
 
         Tractor tractor = new Tractor();
         setCommonFields(tractor, dto, owner);
-        tractor.setHorsepower(dto.getHorsepower());
+        tractor.setHorsepower(dto.getHorsepower() == null ? 0 : dto.getHorsepower());
         tractor.setIs4x4(dto.getIs4x4());
         return tractorRepository.save(tractor);
     }

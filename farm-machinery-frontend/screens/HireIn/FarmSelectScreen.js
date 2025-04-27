@@ -249,44 +249,97 @@ const FarmSelectScreen = ({ route, navigation }) => {
     });
   };
 
+  const uploadImages = async (machineryId, imageUris) => {
+    const formData = new FormData();
+
+    imageUris.forEach((uri, index) => {
+      let filename = uri.split("/").pop();
+      let match = /\.(\w+)$/.exec(filename ?? "");
+      let type = match ? `image/${match[1]}` : `image`;
+
+      formData.append("files", {
+        uri,
+        name: filename,
+        type,
+      });
+    });
+
+    try {
+      const response = await fetch(
+        `http://your-backend-url.com/your-endpoint-path/${machineryId}/bulk`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+      console.log("Uploaded successfully:", data);
+    } catch (error) {
+      console.error("Upload failed:", error);
+    }
+  };
+
   const handleAddMachinery = async () => {
     setIsSaving(true);
+
     try {
-      if (!route?.params?.machineryTitle) {
-        throw new Error("Machinery title is missing in route parameters");
-      }
-      const machineryDetails = route.params.machineryDetails;
-      console.log(
-        JSON.stringify({
-          type: route.params.machineryTitle.toUpperCase(),
-          farmId: selectedFarm.id,
-          ...machineryDetails,
-        })
-      );
+      // 1. fetch your JWT
       const authToken = await SecureStore.getItemAsync("jwt");
       if (!authToken) throw new Error("No authentication token found");
-      const response = await fetch(`http://10.0.2.2:8080/api/machinery/add`, {
+
+      // 2. pull out all your scalar fields
+      const type = route.params.machineryTitle.toUpperCase();
+      const farmId = selectedFarm.id;
+      const details = route.params.machineryDetails;
+      // images should be an array of URIs
+      const imageUris = route.params.images || [];
+
+      // 3. build the multipart form
+      const formData = new FormData();
+      formData.append("type", type);
+      formData.append("farmId", String(farmId));
+      // append every field from your details object
+      Object.entries(details).forEach(([key, value]) => {
+        // make sure it’s a string
+        formData.append(key, value == null ? "" : String(value));
+      });
+
+      // 4. append each local-file URI as a “files” part
+      imageUris.forEach((uri, idx) => {
+        const filename = uri.split("/").pop();
+        const match = /\.(\w+)$/.exec(filename ?? "");
+        const mimeType = match ? `image/${match[1]}` : "image";
+
+        formData.append("files", {
+          uri,
+          name: filename,
+          type: mimeType,
+        });
+      });
+
+      // 5. fire it off — **do not** set Content-Type, RN will add the right boundary
+      console.log(formData)
+      const res = await fetch(`http://10.0.2.2:8080/api/machinery/add`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${authToken}`,
         },
-        body: JSON.stringify({
-          type: route.params.machineryTitle.toUpperCase(),
-          farmId: selectedFarm.id,
-          ...machineryDetails,
-        }),
+        body: formData,
       });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Error adding machinery 1: ${response.status} - ${errorText}`
-        );
-      } else {
-        navigation.navigate("ManageMachinery");
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Error adding machinery: ${res.status} – ${errText}`);
       }
-    } catch (error) {
-      console.error("Error adding machinery:", error.message);
+
+      // 6. on success, go back / refresh your list
+      navigation.navigate("ManageMachinery");
+    } catch (e) {
+      console.error("Error adding machinery:", e);
     } finally {
       setIsSaving(false);
     }
@@ -398,11 +451,11 @@ const FarmSelectScreen = ({ route, navigation }) => {
             icon="arrow-right"
             label="Search"
             onPress={() =>
-              navigation
-                .getState()
-                .routes[
-                  navigation.getState().routes.length - 2
-                ].name === "AddMachinery" ? handleAddMachinery() : handleSearchMachinery()
+              navigation.getState().routes[
+                navigation.getState().routes.length - 2
+              ].name === "AddMachinery"
+                ? handleAddMachinery()
+                : handleSearchMachinery()
             }
           />
         )}

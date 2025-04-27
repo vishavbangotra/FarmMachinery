@@ -24,6 +24,7 @@ public class S3Service {
             @Value("${aws.s3.bucket}") String bucketName,
             @Value("${aws.region}") String region) {
         this.s3 = s3Client;
+        System.out.println("bucketName: " + bucketName);
         this.bucketName = bucketName;
         this.region = region;
     }
@@ -41,7 +42,7 @@ public class S3Service {
         PutObjectRequest por = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
-                .acl(ObjectCannedACL.PUBLIC_READ)
+                // .acl(ObjectCannedACL.PUBLIC_READ)
                 .contentType(file.getContentType())
                 .serverSideEncryption(ServerSideEncryption.AES256)
                 .build();

@@ -12,6 +12,7 @@ import {
   Switch,
   Image,
   ScrollView,
+  Alert
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -32,13 +33,36 @@ const MACHINES = [
 
 const machinerySchemas = {
   Tractor: [
-    { name: "horsepower", label: "Horse Power", type: "number", placeholder: "Enter horsepower" },
+    { name: "model", label: "Model", type: "text", placeholder: "Enter model", isRequired: true },
+    {
+      name: "horsepower",
+      label: "Horse Power",
+      type: "number",
+      placeholder: "Enter horsepower",
+      isRequired: true
+    },
     { name: "is4x4", label: "4x4 Capability", type: "switch" },
-    { name: "remarks", label: "Remarks", type: "text", placeholder: "Enter Remarks" },
+    {
+      name: "remarks",
+      label: "Remarks",
+      type: "text",
+      placeholder: "Enter Remarks",
+    },
   ],
   Rotavator: [
-    { name: "bladeCount", label: "Blade Count", type: "number", placeholder: "Enter Blade Count" },
-    { name: "workingDepth", label: "Working Depth", type: "number", placeholder: "Enter Working Depth" },
+    { name: "model", label: "Model", type: "text", placeholder: "Enter model" },
+    {
+      name: "bladeCount",
+      label: "Blade Count",
+      type: "number",
+      placeholder: "Enter Blade Count",
+    },
+    {
+      name: "workingDepth",
+      label: "Working Depth",
+      type: "number",
+      placeholder: "Enter Working Depth",
+    },
   ],
 };
 
@@ -50,7 +74,8 @@ const AddMachineryScreen = ({ navigation }) => {
   useEffect(() => {
     (async () => {
       if (Platform.OS !== "web") {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const { status } =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== "granted") {
           alert("Sorry, we need camera roll permissions to make this work!");
         }
@@ -70,7 +95,7 @@ const AddMachineryScreen = ({ navigation }) => {
     }));
   };
 
-  const pickImages = async (machineryId) => {
+  const pickImages = async (machineryType) => {
     try {
       let result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -80,9 +105,11 @@ const AddMachineryScreen = ({ navigation }) => {
       });
 
       if (!result.canceled) {
+        const images = result.assets.map((asset) => asset.uri);
+
         setImages((prev) => ({
           ...prev,
-          [machineryId]: result.assets.map((asset) => asset.uri),
+          [machineryType]: images,
         }));
       }
     } catch (e) {
@@ -90,10 +117,52 @@ const AddMachineryScreen = ({ navigation }) => {
     }
   };
 
+  const validateForm = (machineryId, machineryTitle) => {
+    const schema = machinerySchemas[machineryTitle];
+    const machineryDetails = formValues[machineryId] || {};
+
+    // Iterate over the schema to check for required fields
+    const requiredFields = schema.filter((field) => field.isRequired);
+    const missingFields = requiredFields.filter(
+      (field) => machineryDetails[field.name] === undefined
+    );
+
+    if (missingFields.length > 0) {
+      Alert.alert(
+        "Error",
+        `Please fill in all required fields: ${missingFields
+          .map((field) => field.label)
+          .join(", ")}`
+      );
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = (machineryId, machineryTitle) => {
+    if (!validateForm(machineryId, machineryTitle)) return;
+
+    const schema = machinerySchemas[machineryTitle];
+    const machineryDetails = {};
+
+    // Iterate over the schema to include all fields
+    schema.forEach((field) => {
+      if (field.type === "switch") {
+        // Default to false for switches if not in formValues
+        machineryDetails[field.name] =
+          formValues[machineryId]?.[field.name] || false;
+      } else {
+        // Default to empty string for text and number fields if not in formValues
+        machineryDetails[field.name] =
+          formValues[machineryId]?.[field.name] || "";
+      }
+    });
+
+    // Navigate to the "Map" screen with complete data
     navigation.navigate("Map", {
       machineryTitle,
-      machineryDetails: formValues[machineryId] || {},
+      machineryDetails,
       images: images[machineryId] || [],
     });
   };
@@ -102,10 +171,22 @@ const AddMachineryScreen = ({ navigation }) => {
     const isExpanded = item.id === expandedMachineId;
     return (
       <View style={styles.machineryItem}>
-        <TouchableOpacity style={styles.headerContainer} onPress={() => toggleExpand(item.id)}>
-          <MaterialCommunityIcons name={item.icon} size={28} color={COLORS.TERTIARY} style={styles.icon} />
+        <TouchableOpacity
+          style={styles.headerContainer}
+          onPress={() => toggleExpand(item.id)}
+        >
+          <MaterialCommunityIcons
+            name={item.icon}
+            size={28}
+            color={COLORS.TERTIARY}
+            style={styles.icon}
+          />
           <Text style={styles.headerText}>{item.title}</Text>
-          <MaterialCommunityIcons name={isExpanded ? "chevron-up" : "chevron-down"} size={24} color={COLORS.TERTIARY} />
+          <MaterialCommunityIcons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={24}
+            color={COLORS.TERTIARY}
+          />
         </TouchableOpacity>
         {isExpanded && (
           <View style={styles.formContainer}>
@@ -116,10 +197,16 @@ const AddMachineryScreen = ({ navigation }) => {
                     <Text style={styles.fieldLabel}>{field.label}</Text>
                     <Switch
                       trackColor={{ false: "black", true: COLORS.SECONDARY }}
-                      thumbColor={formValues[item.id]?.[field.name] ? COLORS.PRIMARY : "rgb(63, 106, 143)"}
+                      thumbColor={
+                        formValues[item.id]?.[field.name]
+                          ? COLORS.PRIMARY
+                          : "rgb(63, 106, 143)"
+                      }
                       ios_backgroundColor={COLORS.BORDER}
                       value={!!formValues[item.id]?.[field.name]}
-                      onValueChange={(value) => handleChange(item.id, field.name, value)}
+                      onValueChange={(value) =>
+                        handleChange(item.id, field.name, value)
+                      }
                     />
                   </View>
                 ) : (
@@ -129,9 +216,13 @@ const AddMachineryScreen = ({ navigation }) => {
                       style={styles.input}
                       placeholder={field.placeholder}
                       placeholderTextColor={COLORS.TEXT_DARK}
-                      keyboardType={field.type === "number" ? "numeric" : "default"}
+                      keyboardType={
+                        field.type === "number" ? "numeric" : "default"
+                      }
                       value={formValues[item.id]?.[field.name] || ""}
-                      onChangeText={(text) => handleChange(item.id, field.name, text)}
+                      onChangeText={(text) =>
+                        handleChange(item.id, field.name, text)
+                      }
                     />
                   </View>
                 )}
@@ -142,7 +233,12 @@ const AddMachineryScreen = ({ navigation }) => {
               style={[GLOBAL_STYLES.button, styles.imagePickerButton]}
               onPress={() => pickImages(item.id)}
             >
-              <MaterialCommunityIcons name="camera" size={24} color="white" style={styles.buttonIcon} />
+              <MaterialCommunityIcons
+                name="camera"
+                size={24}
+                color="white"
+                style={styles.buttonIcon}
+              />
               <Text style={styles.buttonText}>
                 {images[item.id]?.length > 0 ? "Change Images" : "Add Images"}
               </Text>
@@ -152,24 +248,37 @@ const AddMachineryScreen = ({ navigation }) => {
               <ScrollView horizontal style={styles.imagePreviewContainer}>
                 {images[item.id].map((uri, idx) => (
                   <View key={idx} style={styles.imageWrapper}>
-                    <Image source={{ uri }} style={styles.imagePreview} resizeMode="cover" />
+                    <Image
+                      source={{ uri }}
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                    />
                     <TouchableOpacity
                       style={styles.removeButton}
                       onPress={() =>
                         setImages((prev) => ({
                           ...prev,
-                          [item.id]: prev[item.id].filter((_, index) => index !== idx),
+                          [item.id]: prev[item.id].filter(
+                            (_, index) => index !== idx
+                          ),
                         }))
                       }
                     >
-                      <MaterialCommunityIcons name="close" size={20} color="white" />
+                      <MaterialCommunityIcons
+                        name="close"
+                        size={20}
+                        color="white"
+                      />
                     </TouchableOpacity>
                   </View>
                 ))}
               </ScrollView>
             )}
 
-            <TouchableOpacity style={GLOBAL_STYLES.button} onPress={() => handleSubmit(item.id, item.title)}>
+            <TouchableOpacity
+              style={GLOBAL_STYLES.button}
+              onPress={() => handleSubmit(item.id, item.title)}
+            >
               <Text style={styles.buttonText}>Submit {item.title}</Text>
             </TouchableOpacity>
           </View>
