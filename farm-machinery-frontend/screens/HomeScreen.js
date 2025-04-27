@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AuthContext from "../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
+import { COLORS } from "../constants/styles";
 
 const HomeScreen = () => {
   const [menuVisible, setMenuVisible] = useState(false);
@@ -34,7 +35,7 @@ const HomeScreen = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.headerBar}>
-        <Text style={styles.title}>Our Service</Text>
+        <Text style={styles.title}>Farm Machinery</Text>
         <Menu
           visible={menuVisible}
           anchor={
@@ -75,13 +76,13 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.BACKGROUND,
   },
   headerBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#4CAF50",
+    backgroundColor: COLORS.BACKGROUND,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -111,7 +112,7 @@ const styles = StyleSheet.create({
   welcome: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#333",
+    color: COLORS.TEXT_LIGHT,
     marginBottom: 32,
   },
   button: {
@@ -127,10 +128,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   hireInButton: {
-    backgroundColor: "#81C784",
+    backgroundColor: COLORS.PRIMARY,
   },
   hireOutButton: {
-    backgroundColor: "#66BB6A",
+    backgroundColor: COLORS.PRIMARY,
   },
   buttonText: {
     fontSize: 18,

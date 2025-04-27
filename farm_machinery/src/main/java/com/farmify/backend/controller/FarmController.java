@@ -16,12 +16,13 @@ import com.farmify.backend.model.Farm;
 import com.farmify.backend.service.FarmService;
 import com.farmify.backend.service.JwtService;
 
-import lombok.Data;
+import lombok.RequiredArgsConstructor;
+
 import javax.validation.Valid;
 
-@Data
 @RestController
 @RequestMapping("/api/farms")
+@RequiredArgsConstructor
 public class FarmController {
     private final FarmService farmService;
     private final JwtService jwtService;

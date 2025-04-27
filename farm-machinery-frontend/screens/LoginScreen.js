@@ -48,7 +48,6 @@ const LoginScreen = ({ navigation }) => {
       const data = await response.json();
       if (data.success) {
         setIsOtpSent(true);
-        Alert.alert("OTP Sent", "Please check your phone for the OTP");
       } else {
         throw new Error(data.message || "Failed to send OTP");
       }

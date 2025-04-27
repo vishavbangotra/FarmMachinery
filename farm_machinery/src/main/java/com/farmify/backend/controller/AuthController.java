@@ -1,7 +1,6 @@
 package com.farmify.backend.controller;
 
 import com.farmify.backend.dto.*;
-import com.farmify.backend.model.User;
 import com.farmify.backend.service.JwtService;
 import com.farmify.backend.service.UserService;
 import com.twilio.exception.ApiException;

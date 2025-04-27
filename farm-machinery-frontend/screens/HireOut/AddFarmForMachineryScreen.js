@@ -358,7 +358,6 @@ const SelectFarmForMachinery = ({ navigation, route }) => {
             label="Add Machinery"
             onPress={() => {
               const machineryDetails = route.params.machineryDetails;
-              console.log(machineryDetails);
               handleAddMachinery(selectedFarm.id, machineryDetails);
               navigation.navigate("ManageMachinery", { farm: selectedFarm });
             }}

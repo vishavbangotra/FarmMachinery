@@ -33,6 +33,13 @@ const TILES = [
     iconName: "calendar",
     screen: "BookingList",
   },
+  {
+    id: "farms",
+    title: "Farms",
+    description: "View your Farms",
+    iconName: "farm",
+    screen: "Farm",
+  },
 ];
 
 const HomeScreen = ({ navigation }) => {

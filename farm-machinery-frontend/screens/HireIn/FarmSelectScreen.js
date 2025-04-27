@@ -24,21 +24,6 @@ import { COLORS, SIZES, FONTS } from "../../constants/styles";
 const API_BASE_URL = "http://10.0.2.2:8080";
 
 const FarmSelectScreen = ({ route, navigation }) => {
-  const savedFarms = [
-    {
-      id: "1",
-      name: "Farm Jammu Auto",
-      latitude: 32.7300307600586,
-      longitude: 74.85615100711584,
-    },
-    {
-      id: "1742126686607",
-      name: "Farm Jammu 2",
-      latitude: 32.72915219022547,
-      longitude: 74.85791858285666,
-    },
-  ];
-
   const [farms, setFarms] = useState([]);
   const [region, setRegion] = useState(null);
   const [addingFarm, setAddingFarm] = useState(false);
@@ -218,7 +203,7 @@ const FarmSelectScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error("Error deleting farm:", error);
     }
-  }
+  };
 
   const handleDeleteFarm = (farmId) => {
     setFarmToDelete(farmId);
@@ -252,6 +237,59 @@ const FarmSelectScreen = ({ route, navigation }) => {
         useNativeDriver: true,
       }).start()
     );
+  };
+
+  const handleSearchMachinery = () => {
+    navigation.navigate("MachinerySearch", {
+      farm: selectedFarm,
+      machinery: route.params.machinery,
+      startDate: route.params.startDate,
+      endDate: route.params.endDate,
+      distance,
+    });
+  };
+
+  const handleAddMachinery = async () => {
+    setIsSaving(true);
+    try {
+      if (!route?.params?.machineryTitle) {
+        throw new Error("Machinery title is missing in route parameters");
+      }
+      const machineryDetails = route.params.machineryDetails;
+      console.log(
+        JSON.stringify({
+          type: route.params.machineryTitle.toUpperCase(),
+          farmId: selectedFarm.id,
+          ...machineryDetails,
+        })
+      );
+      const authToken = await SecureStore.getItemAsync("jwt");
+      if (!authToken) throw new Error("No authentication token found");
+      const response = await fetch(`http://10.0.2.2:8080/api/machinery/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          type: route.params.machineryTitle.toUpperCase(),
+          farmId: selectedFarm.id,
+          ...machineryDetails,
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Error adding machinery 1: ${response.status} - ${errorText}`
+        );
+      } else {
+        navigation.navigate("ManageMachinery");
+      }
+    } catch (error) {
+      console.error("Error adding machinery:", error.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -360,13 +398,11 @@ const FarmSelectScreen = ({ route, navigation }) => {
             icon="arrow-right"
             label="Search"
             onPress={() =>
-              navigation.navigate("MachinerySearch", {
-                farm: selectedFarm,
-                machinery: route.params.machinery,
-                startDate: route.params.startDate,
-                endDate: route.params.endDate,
-                distance,
-              })
+              navigation
+                .getState()
+                .routes[
+                  navigation.getState().routes.length - 2
+                ].name === "AddMachinery" ? handleAddMachinery() : handleSearchMachinery()
             }
           />
         )}
