@@ -1,10 +1,8 @@
 package com.farmify.backend.service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.repository.query.Param;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +43,7 @@ public class MachineryService {
                     MachinerySearchResultDTO result = new MachinerySearchResultDTO();
                     if (m.getFarmLocation() != null) {
                         result.setDistance(MachineryService.calculateDistance(lat, lon,
-                                m.getFarmLocation().getLatitude(), m.getFarmLocation().getLongitude()));
+                            m.getFarmLocation().getLatitude(), m.getFarmLocation().getLongitude()));
                         result.setFarmDescription(m.getFarmLocation().getDescription());
                         result.setFarmLocation(m.getFarmLocation().toString());
                         result.setLatitude(m.getFarmLocation().getLatitude());
@@ -64,6 +62,12 @@ public class MachineryService {
                 .collect(java.util.stream.Collectors.toList());
 
         return resultList;
+    }
+
+    public void deleteMachinery(Long machineryId) {
+        Machinery machinery = machineryRepository.findById(machineryId)
+                .orElseThrow(() -> new EntityNotFoundException("Machinery not found"));
+        machineryRepository.delete(machinery);
     }
 
     public static double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -146,7 +150,6 @@ public class MachineryService {
     private void setCommonFields(Machinery machinery, MachineryDTO dto, User owner) {
         machinery.setOwner(owner);
         machinery.setRemarks(dto.getRemarks());
-        machinery.setImageUrl(dto.getImageUrl());
         machinery.setStatus(dto.getStatus());
         machinery.setFarmLocation(farmRepository.findById(dto.getFarmId())
                 .orElseThrow(() -> new EntityNotFoundException("Farm not found")));

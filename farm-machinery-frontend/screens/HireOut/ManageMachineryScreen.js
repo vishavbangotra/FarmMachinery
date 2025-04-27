@@ -83,6 +83,25 @@ const ManageMachineryScreen = () => {
     );
   };
 
+  const removeMachineryRequest = async (id) => {
+    try {
+      const authToken = await SecureStore.getItemAsync("jwt");
+      const response = await fetch(`${API_BASE_URL}/api/machinery/delete/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return true;
+    } catch (error) {
+      Alert.alert("Error", `Failed to remove machinery: ${error.message}`);
+      return false;
+    }
+  };
+
   // Remove a machinery item with confirmation
   const removeMachinery = (id, title) => {
     Alert.alert(
@@ -94,9 +113,11 @@ const ManageMachineryScreen = () => {
           text: "Remove",
           style: "destructive",
           onPress: () => {
-            setMachineries((prev) => prev.filter((m) => m.id !== id));
-            setModalVisible(false);
-            Alert.alert("Success", "Machinery removed successfully");
+            if(removeMachineryRequest(id)){
+              setMachineries((prev) => prev.filter((m) => m.id !== id));
+              setModalVisible(false);
+              Alert.alert("Success", "Machinery removed successfully");
+            }
           },
         },
       ],
@@ -159,26 +180,31 @@ const ManageMachineryScreen = () => {
   };
 
   // Render each machinery item as a card
-  const renderTile = ({ item }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => openModal(item)}
-      accessible={true}
-      accessibilityLabel={`Machinery: ${item.title}, Status: ${item.status}, Hourly Rate: ${item.hourlyRate}`}
-    >
-      {item.image ? (
-        <Image source={{ uri: item.image }} style={styles.cardImage} />
-      ) : (
-        <View style={styles.cardPlaceholder}>
-          <Text style={styles.cardPlaceholderText}>No Image</Text>
+  const renderTile = useCallback(
+    ({ item }) => (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => openModal(item)}
+        activeOpacity={0.7} // Added for feedback
+        accessible={true}
+        accessibilityLabel={`Machinery: ${item.title}, Status: ${item.status}, Hourly Rate: ${item.hourlyRate}`}
+      >
+        {item.image ? (
+          <Image source={{ uri: item.image }} style={styles.cardImage} />
+        ) : (
+          <View style={styles.cardPlaceholder}>
+            <Icon name="image" size={40} color={COLORS.SECONDARY} />
+            <Text style={styles.cardPlaceholderText}>No Image</Text>
+          </View>
+        )}
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text style={styles.cardDetail}>Status: {item.status}</Text>
+          <Text style={styles.cardDetail}>Hourly Rate: {item.hourlyRate}</Text>
         </View>
-      )}
-      <View style={styles.cardContent}>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text style={styles.cardDetail}>Status: {item.status}</Text>
-        <Text style={styles.cardDetail}>Hourly Rate: {item.hourlyRate}</Text>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    ),
+    [openModal]
   );
 
   if (loading) {
@@ -202,13 +228,21 @@ const ManageMachineryScreen = () => {
             onRefresh={fetchMachineries}
           />
         }
+        initialNumToRender={10} // Added for performance
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No machinery items found.</Text>
+          <View style={styles.emptyContainer}>
+            <Icon
+              name="exclamation-circle"
+              size={40}
+              color={COLORS.SECONDARY}
+            />
+            <Text style={styles.emptyText}>No machinery items found.</Text>
+          </View>
         }
       />
 
       {/* Modal for Editing Machinery */}
-      <Modal visible={modalVisible} transparent animationType="slide">
+      <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             {selectedMachinery && (
@@ -218,11 +252,12 @@ const ManageMachineryScreen = () => {
                     {selectedMachinery.title}
                   </Text>
                   <TouchableOpacity
+                    style={styles.closeButton}
                     onPress={() => setModalVisible(false)}
                     accessible={true}
                     accessibilityLabel="Close modal"
                   >
-                    <Icon name="close" size={24} color={COLORS.SECONDARY} />
+                    <Icon name="close" size={28} color={COLORS.SECONDARY} />
                   </TouchableOpacity>
                 </View>
 
@@ -240,16 +275,16 @@ const ManageMachineryScreen = () => {
                 </View>
                 <View style={styles.imageButtons}>
                   <TouchableOpacity
-                    style={styles.modalButton}
+                    style={styles.actionButton}
                     onPress={handlePickImage}
                   >
-                    <Text style={styles.modalButtonText}>Change Image</Text>
+                    <Text style={styles.actionButtonText}>Change</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.modalButton, styles.removeButton]}
+                    style={[styles.actionButton, styles.removeButton]}
                     onPress={handleRemoveImage}
                   >
-                    <Text style={styles.modalButtonText}>Remove Image</Text>
+                    <Text style={styles.actionButtonText}>Remove</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -272,17 +307,21 @@ const ManageMachineryScreen = () => {
                 <View style={styles.row}>
                   <Text style={styles.modalLabel}>Hourly Rate:</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      tempModalHourlyRate === "" && styles.inputError,
+                    ]}
                     keyboardType="numeric"
                     value={tempModalHourlyRate}
                     onChangeText={setTempModalHourlyRate}
-                    placeholder="Enter hourly rate"
+                    placeholder="e.g., 25.00"
+                    placeholderTextColor={COLORS.SECONDARY}
                     accessibilityLabel="Hourly rate input"
                   />
                 </View>
                 <View style={styles.modalActions}>
                   <TouchableOpacity
-                    style={[styles.modalButton, styles.removeButton]}
+                    style={[styles.actionButton, styles.removeButton]}
                     onPress={() =>
                       removeMachinery(
                         selectedMachinery.id,
@@ -290,16 +329,16 @@ const ManageMachineryScreen = () => {
                       )
                     }
                   >
-                    <Text style={styles.modalButtonText}>Remove</Text>
+                    <Text style={styles.actionButtonText}>Remove</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
-                      styles.modalButton,
+                      styles.actionButton,
                       { backgroundColor: COLORS.PRIMARY },
                     ]}
                     onPress={handleSave}
                   >
-                    <Text style={styles.modalButtonText}>Save</Text>
+                    <Text style={styles.actionButtonText}>Save</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -316,6 +355,11 @@ const ManageMachineryScreen = () => {
       >
         <View style={styles.bottomSheet}>
           <Text style={styles.bottomSheetTitle}>Select a Machinery</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search machinery..."
+            placeholderTextColor={COLORS.SECONDARY}
+          />
           <ScrollView>
             {machineries.map((item) => (
               <TouchableOpacity
@@ -326,6 +370,12 @@ const ManageMachineryScreen = () => {
                   setShowFarmList(false);
                 }}
               >
+                <Icon
+                  name="tractor"
+                  size={20}
+                  color={COLORS.PRIMARY}
+                  style={{ marginRight: 10 }}
+                />
                 <Text style={styles.bottomSheetItemText}>{item.title}</Text>
               </TouchableOpacity>
             ))}
@@ -342,20 +392,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.BACKGROUND || "#f2f2f2",
     padding: SIZES.PADDING || 16,
   },
-  header: {
-    fontSize: SIZES.TITLE || 24,
-    fontFamily: FONTS.BOLD || "System",
-    color: COLORS.PRIMARY || "#4CAF50",
-    marginBottom: SIZES.MARGIN_LARGE || 24,
-    textAlign: "center",
-  },
   listContainer: {
     paddingBottom: 20,
   },
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
@@ -366,34 +409,35 @@ const styles = StyleSheet.create({
   cardImage: {
     width: "100%",
     height: 150,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 12,
   },
   cardPlaceholder: {
     width: "100%",
     height: 150,
-    borderRadius: 8,
-    backgroundColor: COLORS.INPUT_BG || "#e0e0e0",
+    borderRadius: 12,
+    backgroundColor: COLORS.INPUT_BG,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
   },
   cardPlaceholderText: {
-    color: COLORS.SECONDARY || "#757575",
+    color: COLORS.SECONDARY,
     fontSize: 16,
+    marginTop: 8,
   },
   cardContent: {
     alignItems: "flex-start",
   },
   cardTitle: {
-    fontSize: 18,
-    fontFamily: FONTS.BOLD || "System",
-    color: COLORS.PRIMARY || "#4CAF50",
+    fontSize: SIZES.SUBTITLE || 18,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.PRIMARY,
     marginBottom: 4,
   },
   cardDetail: {
-    fontSize: 14,
-    color: COLORS.SECONDARY || "#757575",
+    fontSize: SIZES.BODY || 14,
+    color: COLORS.SECONDARY,
     marginBottom: 2,
   },
   modalOverlay: {
@@ -405,10 +449,16 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: "90%",
+    maxWidth: 400,
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 20,
     elevation: 5,
+  },
+  closeButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: COLORS.INPUT_BG,
   },
   modalHeaderContainer: {
     flexDirection: "row",
@@ -418,18 +468,59 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     fontSize: SIZES.TITLE || 22,
-    fontFamily: FONTS.BOLD || "System",
-    color: COLORS.TERTIARY || "#333",
+    fontFamily: FONTS.BOLD,
+    color: COLORS.TERTIARY,
   },
-  modalLabel: {
+  imageContainer: {
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  modalImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    resizeMode: "cover",
+  },
+  imagePlaceholder: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: COLORS.INPUT_BG,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imagePlaceholderText: {
+    color: COLORS.SECONDARY,
     fontSize: 16,
-    color: COLORS.SECONDARY || "#757575",
-    marginRight: 10,
+  },
+  imageButtons: {
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    marginBottom: 16,
+  },
+  actionButton: {
+    backgroundColor: COLORS.ACCENT,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  removeButton: {
+    backgroundColor: COLORS.ERROR || "darkred",
+  },
+  actionButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontFamily: FONTS.MEDIUM || "System",
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 16,
+  },
+  modalLabel: {
+    fontSize: 16,
+    color: COLORS.SECONDARY,
+    marginRight: 10,
   },
   segmentedControl: {
     flex: 1,
@@ -438,53 +529,15 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 44,
-    borderColor: COLORS.BORDER || "#ddd",
+    borderColor: COLORS.BORDER,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.INPUT_BG,
+    fontFamily: FONTS.REGULAR,
   },
-  imageContainer: {
-    alignItems: "center",
-    marginVertical: 16,
-  },
-  modalImage: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
-  },
-  imagePlaceholder: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
-    backgroundColor: COLORS.INPUT_BG || "#e0e0e0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  imagePlaceholderText: {
-    color: COLORS.SECONDARY || "#757575",
-    fontSize: 16,
-  },
-  imageButtons: {
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-    marginBottom: 16,
-  },
-  modalButton: {
-    backgroundColor: COLORS.TERTIARY || "#333",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    minWidth: 100,
-    alignItems: "center",
-  },
-  removeButton: {
-    backgroundColor: "darkred",
-  },
-  modalButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
+  inputError: {
+    borderColor: COLORS.ERROR || "red",
   },
   modalActions: {
     flexDirection: "row",
@@ -500,25 +553,38 @@ const styles = StyleSheet.create({
   },
   bottomSheetTitle: {
     fontSize: 20,
-    fontFamily: FONTS.BOLD || "System",
-    color: COLORS.PRIMARY || "#4CAF50",
+    fontFamily: FONTS.BOLD,
+    color: COLORS.PRIMARY,
     marginBottom: 16,
     textAlign: "center",
   },
+  searchInput: {
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: COLORS.INPUT_BG,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
   bottomSheetItem: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 16,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.BORDER || "#ddd",
+    borderBottomColor: COLORS.BORDER,
   },
   bottomSheetItemText: {
     fontSize: 16,
-    color: COLORS.SECONDARY || "#757575",
+    color: COLORS.SECONDARY,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    marginTop: 20,
   },
   emptyText: {
-    textAlign: "center",
-    color: COLORS.SECONDARY || "#757575",
+    color: COLORS.SECONDARY,
     fontSize: 16,
-    marginTop: 20,
+    marginTop: 8,
   },
 });
 
