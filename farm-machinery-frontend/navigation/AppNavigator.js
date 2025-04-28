@@ -3,7 +3,6 @@ import {
   createBottomTabNavigator,
   Navigator,
 } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons"; // Assuming Expo is used
 import { COLORS } from "../constants/styles"; // Assuming constants are in a separate file
 import { createStackNavigator } from "@react-navigation/stack";
 import HomeScreen from "../screens/HomeScreen";
@@ -45,7 +44,11 @@ const AppNavigator = () => {
       <Stack.Screen
         name="MachinerySearch"
         component={MachinerySearchScreen}
-        options={{ title: "Search Machinery" }}
+        options={({ navigation }) => ({
+          title: "Search Machinery",
+          headerStyle: { backgroundColor: COLORS.BACKGROUND },
+          headerTintColor: COLORS.TEXT_LIGHT
+        })}
       />
       <Stack.Screen
         name="Map"
@@ -53,7 +56,7 @@ const AppNavigator = () => {
         options={{
           title: "Select Farm",
           headerStyle: { backgroundColor: COLORS.BACKGROUND },
-          headerTintColor: COLORS.TEXT_LIGHT 
+          headerTintColor: COLORS.TEXT_LIGHT,
         }}
       />
 
@@ -80,7 +83,15 @@ const AppNavigator = () => {
           headerTintColor: COLORS.TEXT_LIGHT,
         }}
       />
-      <Stack.Screen name="ManageMachinery" component={ManageMachineryScreen} options={{ title: "Your Machinery", headerStyle: { backgroundColor: COLORS.BACKGROUND }, headerTintColor: COLORS.TEXT_LIGHT }}/>
+      <Stack.Screen
+        name="ManageMachinery"
+        component={ManageMachineryScreen}
+        options={{
+          title: "Your Machinery",
+          headerStyle: { backgroundColor: COLORS.BACKGROUND },
+          headerTintColor: COLORS.TEXT_LIGHT,
+        }}
+      />
       <Stack.Screen name="BookingList" component={BookingListScreen} />
       <Stack.Screen
         name="AddFarmForMachineryScreen"

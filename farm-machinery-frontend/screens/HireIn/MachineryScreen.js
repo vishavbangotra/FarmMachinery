@@ -69,7 +69,7 @@ export default function MachineryScreen({ navigation }) {
           <MaterialCommunityIcons
             name={item.icon}
             size={24}
-            color={selected ? COLORS.BACKGROUND : COLORS.TEXT_LIGHT}
+            color={selected ? COLORS.BACKGROUND : COLORS.TEXT_DARK}
           />
         </View>
         <Text style={[styles.cardText, selected && styles.textSelected]}>
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     marginLeft: SIZES.SPACING,
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.REGULAR,
-    color: COLORS.TEXT_LIGHT,
+    color: COLORS.TEXT_DARK,
   },
   errorText: {
     color: COLORS.ACCENT,
@@ -224,10 +224,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.MEDIUM,
-    color: COLORS.TEXT_LIGHT,
+    color: COLORS.TEXT_DARK,
   },
   textSelected: {
-    color: COLORS.TEXT_LIGHT,
+    color: COLORS.TEXT_DARK,
     fontFamily: FONTS.MEDIUM,
   },
   buttonDisabled: {

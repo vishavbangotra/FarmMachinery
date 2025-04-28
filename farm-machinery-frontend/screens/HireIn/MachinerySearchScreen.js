@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useLayoutEffect } from "react";
+import { Ionicons } from "@expo/vector-icons"; // Assuming Expo is used
 import {
   View,
   Text,
@@ -30,6 +31,28 @@ const MachinerySearchScreen = ({ route }) => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isBookingModalVisible, setBookingModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={() => handleSendToAll()}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              marginRight: 10,
+            }}
+          >
+            <Text style={{ color: COLORS.TEXT_LIGHT, fontWeight: "800" }}>
+              Send All
+            </Text>
+            <Ionicons name="send" size={24} color={COLORS.TEXT_LIGHT} />
+          </View>
+        </TouchableOpacity>
+      )
+    });
+  }, [navigation]);
 
   // Fetch machinery list from API on component mount
   useEffect(() => {
