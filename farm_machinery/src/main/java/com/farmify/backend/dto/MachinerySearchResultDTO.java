@@ -1,5 +1,7 @@
 package com.farmify.backend.dto;
 
+import java.util.List;
+
 import com.farmify.backend.model.MachineryType;
 
 import lombok.Data;
@@ -8,6 +10,7 @@ import lombok.Data;
 public class MachinerySearchResultDTO {
     private String farmLocation;
     private String farmDescription;
+    private List<String> imageUrls;
     private MachineryType type;
     private double rentPerDay;
     private String ownerPhone;

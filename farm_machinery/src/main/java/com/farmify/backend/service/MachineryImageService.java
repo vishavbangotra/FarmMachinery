@@ -103,6 +103,7 @@ public class MachineryImageService {
             img.setMachinery(m);
             img.setImageNumber(imgNo);
             img.setKey(key);
+            m.getImages().add(img);
             imageRepo.save(img);
 
             urls.add(s3Service.getFileUrl(key));

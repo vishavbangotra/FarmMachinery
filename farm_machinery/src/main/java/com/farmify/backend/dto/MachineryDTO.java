@@ -1,5 +1,7 @@
 package com.farmify.backend.dto;
 
+import java.util.List;
+
 import com.farmify.backend.model.MachineryStatus;
 import com.farmify.backend.model.MachineryType;
 
@@ -18,7 +20,7 @@ public class MachineryDTO {
     private Long farmId;
     private MachineryStatus status = MachineryStatus.AVAILABLE; // Enum: AVAILABLE, ENGAGED, UNAVAILABLE,
 
-    private String imageUrl;
+    private List<String> imageUrls;
 
     // Tractor-specific
     private Integer horsepower;

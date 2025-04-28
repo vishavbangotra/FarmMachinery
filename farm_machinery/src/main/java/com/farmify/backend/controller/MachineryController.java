@@ -26,7 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class MachineryController {
     private final MachineryService machineryService;
-    private final MachineryImageService machineryImageService;
     private final JwtService jwtService;
 
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -49,13 +48,7 @@ public class MachineryController {
         Long userId = jwtService.extractUserId(token);
         machineryDto.setOwnerId(userId);
         try {
-            Machinery createdMachinery = machineryService.createMachinery(machineryDto);
-            
-            List<Integer> imageNumbers = null;
-            if (files != null && files.size() > 0) {
-                imageNumbers = IntStream.range(1, files.size() + 1).boxed().collect(Collectors.toList());
-            }
-            machineryImageService.uploadImages(createdMachinery.getId(), files, imageNumbers);
+            Machinery createdMachinery = machineryService.createMachinery(machineryDto, files);
             return ResponseEntity.ok(createdMachinery);
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

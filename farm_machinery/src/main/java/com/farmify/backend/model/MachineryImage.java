@@ -1,5 +1,7 @@
 package com.farmify.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -26,6 +28,7 @@ public class MachineryImage {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "machinery_id")
+    @JsonIgnore
     private Machinery machinery;
 
     /** S3 key, e.g. "machinery/42/2025-04-24T12-00Z-uuid.png" */

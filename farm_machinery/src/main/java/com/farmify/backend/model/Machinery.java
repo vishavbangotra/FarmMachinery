@@ -3,6 +3,7 @@ package com.farmify.backend.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -28,6 +29,7 @@ public abstract class Machinery {
     private User owner;
     
     @OneToMany(mappedBy = "machinery", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<MachineryImage> images = new ArrayList<>();
 
     private String modelInfo;
