@@ -249,40 +249,6 @@ const FarmSelectScreen = ({ route, navigation }) => {
     });
   };
 
-  const uploadImages = async (machineryId, imageUris) => {
-    const formData = new FormData();
-
-    imageUris.forEach((uri, index) => {
-      let filename = uri.split("/").pop();
-      let match = /\.(\w+)$/.exec(filename ?? "");
-      let type = match ? `image/${match[1]}` : `image`;
-
-      formData.append("files", {
-        uri,
-        name: filename,
-        type,
-      });
-    });
-
-    try {
-      const response = await fetch(
-        `http://your-backend-url.com/your-endpoint-path/${machineryId}/bulk`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          body: formData,
-        }
-      );
-
-      const data = await response.json();
-      console.log("Uploaded successfully:", data);
-    } catch (error) {
-      console.error("Upload failed:", error);
-    }
-  };
-
   const handleAddMachinery = async () => {
     setIsSaving(true);
 
@@ -449,7 +415,13 @@ const FarmSelectScreen = ({ route, navigation }) => {
           <FAB
             style={[styles.fab, { backgroundColor: COLORS.PRIMARY }]}
             icon="arrow-right"
-            label="Search"
+            label={
+              navigation.getState().routes[
+                navigation.getState().routes.length - 2
+              ].name === "AddMachinery"
+                ? "Add"
+                : "Search"
+            }
             onPress={() =>
               navigation.getState().routes[
                 navigation.getState().routes.length - 2
