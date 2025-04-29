@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect } from "react";
-import { Ionicons } from "@expo/vector-icons"; // Assuming Expo is used
+import { Ionicons } from "@expo/vector-icons";
 import {
   View,
   Text,
@@ -9,21 +9,17 @@ import {
   StyleSheet,
   Modal,
   ActivityIndicator,
+  Linking,
+  Dimensions,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
+import { COLORS } from "../../constants/styles"; // Assuming COLORS is defined in your constants
+
+const windowWidth = Dimensions.get("window").width;
 
 const MachinerySearchScreen = ({ route }) => {
-  // Expecting route params to include necessary search parameters:
-  // e.g., type, distance, lon, lat (passed from a previous screen)
-  const {
-    distance,
-    endDate,
-    farm,
-    pushTokens,
-    machinery,
-    startDate,
-  } = route.params;
+  const { distance, endDate, farm, pushTokens, machinery, startDate } =
+    route.params;
 
   const navigation = useNavigation();
   const [searchResults, setSearchResults] = useState([]);
@@ -32,10 +28,11 @@ const MachinerySearchScreen = ({ route }) => {
   const [isBookingModalVisible, setBookingModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Set navigation header options
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={() => handleSendToAll()}>
+        <TouchableOpacity onPress={handleSendToAll}>
           <View
             style={{
               flexDirection: "row",
@@ -50,24 +47,21 @@ const MachinerySearchScreen = ({ route }) => {
             <Ionicons name="send" size={24} color={COLORS.TEXT_LIGHT} />
           </View>
         </TouchableOpacity>
-      )
+      ),
     });
   }, [navigation]);
 
-  // Fetch machinery list from API on component mount
+  // Fetch machinery data from API
   useEffect(() => {
     const fetchMachinery = async () => {
       setIsLoading(true);
       try {
-        // Build URL with query parameters from route params
-        // Modify URL as necessary to match your backend endpoint
-        const apiUrl = `http://10.0.2.2:8080/api/machinery/search?type=${machinery.toUpperCase()}&lon=${farm.longitude}&lat=${farm.latitude}&distance=${distance}`;
+        const apiUrl = `http://10.0.2.2:8080/api/machinery/search?type=${machinery.toUpperCase()}&lon=${
+          farm.longitude
+        }&lat=${farm.latitude}&distance=${distance}`;
         const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
+        if (!response.ok) throw new Error("Network response was not ok");
         const machineryList = await response.json();
-        console.log(machineryList)
         setSearchResults(machineryList);
       } catch (error) {
         console.error("Error fetching machinery data:", error);
@@ -75,10 +69,10 @@ const MachinerySearchScreen = ({ route }) => {
         setIsLoading(false);
       }
     };
-
     fetchMachinery();
   }, [machinery, startDate, endDate, farm, distance]);
 
+  // Render each item in the list view
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.itemContainer}
@@ -87,46 +81,59 @@ const MachinerySearchScreen = ({ route }) => {
         setBookingModalVisible(true);
       }}
     >
-      <Image source={{ uri: item.vehicle_image }} style={styles.vehicleImage} />
+      <Image
+        source={{
+          uri: item.imageUrls?.[0] || "https://via.placeholder.com/80",
+        }}
+        style={styles.vehicleImage}
+      />
       <View style={styles.textContainer}>
-        <Text style={styles.machineryName}>{item.machinery}</Text>
-        <Text style={styles.ownerName}>{item.owner_name}</Text>
-        <Text style={styles.distance}>{item.distance} away</Text>
-        <Text style={styles.availability}>
-          Available from {item.availability_date}
-        </Text>
-        <Text style={styles.rating}>⭐ {item.owner_star_rating}</Text>
+        <Text
+          style={styles.machineryName}
+        >{`${item.type} - ${item.farmDescription}`}</Text>
+        {item.model && (
+          <Text style={styles.modelText}>Model: {item.model}</Text>
+        )}
+        <Text style={styles.distance}>{`${item.distance.toFixed(
+          1
+        )} km away`}</Text>
+        {item.rentPerDay > 0 && (
+          <Text style={styles.rentText}>Rent: ₹{item.rentPerDay}/day</Text>
+        )}
       </View>
     </TouchableOpacity>
   );
 
-  const handleSendToAll = () => {
-    setSendAllModalVisible(true);
-  };
+  // Handle "Send to All" action
+  const handleSendToAll = () => setSendAllModalVisible(true);
 
   const confirmSendToAll = () => {
     console.log("Sending booking requests to all machinery owners");
     setSendAllModalVisible(false);
   };
 
+  // Handle individual booking request
   const confirmBooking = () => {
-    console.log("Booking request sent for", selectedItem?.machinery);
+    console.log("Booking request sent for", selectedItem?.type);
     setBookingModalVisible(false);
   };
 
   return (
     <View style={styles.container}>
-      {/* "Send Booking Request to All" Button at the Top */}
-      <TouchableOpacity
-        style={styles.sendToAllButton}
-        onPress={handleSendToAll}
-      >
-        <Text style={styles.sendToAllText}>Send Booking Request to All</Text>
-      </TouchableOpacity>
+      {/* Search Summary Header */}
+      <View style={styles.searchSummary}>
+        <Text style={styles.searchSummaryText}>
+          Searching for {machinery} within {distance} km from {farm.name}
+        </Text>
+      </View>
 
-      {/* Show loading indicator while fetching data */}
+      {/* Loading, Empty State, or List */}
       {isLoading ? (
         <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+      ) : searchResults.length === 0 ? (
+        <Text style={styles.emptyText}>
+          No machinery found matching your criteria.
+        </Text>
       ) : (
         <FlatList
           data={searchResults}
@@ -137,11 +144,7 @@ const MachinerySearchScreen = ({ route }) => {
       )}
 
       {/* Modal for "Send to All" Confirmation */}
-      <Modal
-        visible={isSendAllModalVisible}
-        transparent={true}
-        animationType="fade"
-      >
+      <Modal visible={isSendAllModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Confirm Sending to All</Text>
@@ -168,34 +171,56 @@ const MachinerySearchScreen = ({ route }) => {
       </Modal>
 
       {/* Modal for Machinery Details */}
-      <Modal
-        visible={isBookingModalVisible}
-        transparent={true}
-        animationType="fade"
-      >
+      <Modal visible={isBookingModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.detailModalContent}>
             {selectedItem && (
               <>
-                <Image
-                  source={{ uri: selectedItem.vehicle_image }}
-                  style={styles.detailModalImage}
+                <FlatList
+                  horizontal
+                  data={selectedItem.imageUrls}
+                  renderItem={({ item }) => (
+                    <Image source={{ uri: item }} style={styles.detailImage} />
+                  )}
+                  keyExtractor={(item, index) => index.toString()}
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
                 />
-                <Text style={styles.detailModalTitle}>
-                  {selectedItem.machinery}
+                <Text style={styles.detailTitle}>{selectedItem.type}</Text>
+                <Text style={styles.detailText}>
+                  Farm: {selectedItem.farmDescription}
                 </Text>
-                <Text style={styles.detailModalText}>
-                  Owner: {selectedItem.owner_name}
+                {selectedItem.model && (
+                  <Text style={styles.detailText}>
+                    Model: {selectedItem.model}
+                  </Text>
+                )}
+                {selectedItem.rentPerDay > 0 && (
+                  <Text style={styles.detailText}>
+                    Rent: ₹{selectedItem.rentPerDay}/day
+                  </Text>
+                )}
+                <Text style={styles.detailText}>
+                  Distance: {selectedItem.distance.toFixed(1)} km away
                 </Text>
-                <Text style={styles.detailModalText}>
-                  Distance: {selectedItem.distance} away
-                </Text>
-                <Text style={styles.detailModalText}>
-                  Available from: {selectedItem.availability_date}
-                </Text>
-                <Text style={styles.detailModalText}>
-                  Rating: ⭐ {selectedItem.owner_star_rating}
-                </Text>
+                {selectedItem.remarks !== "NONE" && (
+                  <Text style={styles.detailText}>
+                    Remarks: {selectedItem.remarks}
+                  </Text>
+                )}
+                <View style={styles.ownerContainer}>
+                  <Text style={styles.detailText}>
+                    Contact: {selectedItem.ownerPhone}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      Linking.openURL(`tel:${selectedItem.ownerPhone}`)
+                    }
+                    style={styles.callButton}
+                  >
+                    <Ionicons name="call" size={24} color={COLORS.PRIMARY} />
+                  </TouchableOpacity>
+                </View>
                 <TouchableOpacity
                   style={styles.bookingButton}
                   onPress={confirmBooking}
@@ -224,6 +249,16 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: COLORS.BACKGROUND,
+  },
+  searchSummary: {
+    padding: 16,
+    backgroundColor: "#f0f0f0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
+  searchSummaryText: {
+    fontSize: 16,
+    color: "#333",
   },
   sendToAllButton: {
     backgroundColor: COLORS.PRIMARY,
@@ -269,7 +304,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
   },
-  ownerName: {
+  modelText: {
     fontSize: 14,
     color: "#666",
     marginTop: 4,
@@ -279,15 +314,16 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 4,
   },
-  availability: {
+  rentText: {
     fontSize: 14,
     color: "#666",
     marginTop: 4,
   },
-  rating: {
-    fontSize: 14,
-    color: "#ffa500",
-    marginTop: 4,
+  emptyText: {
+    textAlign: "center",
+    marginTop: 50,
+    fontSize: 16,
+    color: "#666",
   },
   modalOverlay: {
     flex: 1,
@@ -314,22 +350,52 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
   },
-  detailModalImage: {
-    width: 200,
+  detailImage: {
+    width: 300,
     height: 200,
-    borderRadius: 10,
-    marginBottom: 16,
+    resizeMode: "contain",
+    marginRight: 10,
   },
-  detailModalTitle: {
+  detailTitle: {
     fontSize: 20,
     fontWeight: "bold",
     color: "#333",
-    marginBottom: 12,
+    marginTop: 10,
   },
-  detailModalText: {
+  detailText: {
     fontSize: 16,
     color: "#666",
-    marginBottom: 8,
+    marginTop: 5,
+  },
+  ownerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  callButton: {
+    marginLeft: 10,
+  },
+  bookingButton: {
+    backgroundColor: COLORS.PRIMARY,
+    padding: 14,
+    borderRadius: 8,
+    width: "100%",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  bookingButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  closeButton: {
+    marginTop: 10,
+    alignSelf: "center",
+  },
+  closeButtonText: {
+    color: COLORS.PRIMARY,
+    fontSize: 16,
+    fontWeight: "bold",
   },
   modalTitle: {
     fontSize: 18,
@@ -363,28 +429,6 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  bookingButton: {
-    backgroundColor: COLORS.PRIMARY,
-    padding: 14,
-    borderRadius: 8,
-    width: "100%",
-    alignItems: "center",
-    marginTop: 16,
-  },
-  bookingButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  closeButton: {
-    marginTop: 12,
-    padding: 10,
-  },
-  closeButtonText: {
-    color: COLORS.PRIMARY,
     fontSize: 16,
     fontWeight: "bold",
   },

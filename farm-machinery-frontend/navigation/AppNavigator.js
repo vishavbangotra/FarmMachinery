@@ -9,7 +9,6 @@ import HomeScreen from "../screens/HomeScreen";
 import MachineryScreen from "../screens/HireIn/MachineryScreen";
 import MachinerySearchScreen from "../screens/HireIn/MachinerySearchScreen";
 import FarmSelectScreen from "../screens/HireIn/FarmSelectScreen";
-import MachinerySearchDetailScreen from "../screens/HireIn/MachinerySearchDetailScreen";
 import HireOutScreen from "../screens/HireOut/HireOutScreen";
 import AddMachineryScreen from "../screens/HireOut/AddMachineryScreen";
 import ManageMachineryScreen from "../screens/HireOut/ManageMachineryScreen";
@@ -58,12 +57,6 @@ const AppNavigator = () => {
           headerStyle: { backgroundColor: COLORS.BACKGROUND },
           headerTintColor: COLORS.TEXT_LIGHT,
         }}
-      />
-
-      <Stack.Screen
-        name="MachinerySearchDetail"
-        component={MachinerySearchDetailScreen}
-        options={{ title: "Search Machinery" }}
       />
       <Stack.Screen
         name="HireOut"

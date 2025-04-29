@@ -61,18 +61,20 @@ public class MachineryService {
                         result.setDistance(calculateDistance(lat, lon,
                                 m.getFarmLocation().getLatitude(), m.getFarmLocation().getLongitude()));
                         result.setFarmDescription(m.getFarmLocation().getDescription());
-                        result.setFarmLocation(m.getFarmLocation().toString());
                         result.setLatitude(m.getFarmLocation().getLatitude());
                         result.setLongitude(m.getFarmLocation().getLongitude());
                     }
                     if (m.getOwner() != null) {
-                        result.setOwnerImage(m.getOwner().getImageUrl());
-                        result.setOwnerName(m.getOwner().getName());
+                        // result.setOwnerImage(m.getOwner().getImageUrl());
+                        // result.setOwnerName(m.getOwner().getName());
                         result.setOwnerPhone(m.getOwner().getPhoneNumber());
                     }
                     if (m.getRentPerDay() != null) {
                         result.setRentPerDay(m.getRentPerDay());
                     }
+                    result.setType(m.getType() != null ? MachineryType.valueOf(m.getType().toUpperCase()) : null);
+                    result.setModel(m.getModelInfo() != null ? m.getModelInfo() : "");
+                    result.setRemarks(m.getRemarks());
                     result.setImageUrls(machineryImageService.listImageUrls(m.getId()));
                     return result;
                 })

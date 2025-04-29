@@ -8,7 +8,6 @@ import lombok.Data;
 
 @Data
 public class MachinerySearchResultDTO {
-    private String farmLocation;
     private String farmDescription;
     private List<String> imageUrls;
     private MachineryType type;
@@ -16,10 +15,7 @@ public class MachinerySearchResultDTO {
     private String ownerPhone;
     private double latitude;
     private double longitude;
-    private String ownerName;
     private double distance;
-    private String vehicleImage;
-    private String ownerImage;
     private String remarks;
     private String model;
 }
