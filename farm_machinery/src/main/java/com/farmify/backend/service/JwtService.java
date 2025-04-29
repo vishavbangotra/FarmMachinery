@@ -32,7 +32,7 @@ public class JwtService {
                 .setSubject(userId.toString()) // <-- subject is userId
                 .claim("phoneNumber", phoneNumber) // <-- custom claim
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 10)) // 10 hours
+                .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 30)) // 30 hours
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }

@@ -12,7 +12,7 @@ import {
   Switch,
   Image,
   ScrollView,
-  Alert
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
@@ -33,15 +33,28 @@ const MACHINES = [
 
 const machinerySchemas = {
   Tractor: [
-    { name: "model", label: "Model", type: "text", placeholder: "Enter model", isRequired: true },
+    {
+      name: "model",
+      label: "Model",
+      type: "text",
+      placeholder: "Enter model",
+      isRequired: true,
+    },
     {
       name: "horsepower",
       label: "Horse Power",
       type: "number",
       placeholder: "Enter horsepower",
-      isRequired: true
+      isRequired: true,
     },
     { name: "is4x4", label: "4x4 Capability", type: "switch" },
+    {
+      name: "rentPerDay",
+      label: "Rent Per Day",
+      type: "number",
+      placeholder: "Enter rent per day",
+      isRequired: true,
+    },
     {
       name: "remarks",
       label: "Remarks",
@@ -62,6 +75,19 @@ const machinerySchemas = {
       label: "Working Depth",
       type: "number",
       placeholder: "Enter Working Depth",
+    },
+    {
+      name: "rentPerDay",
+      label: "Rent Per Day",
+      type: "number",
+      placeholder: "Enter rent per day",
+      isRequired: true,
+    },
+    {
+      name: "remarks",
+      label: "Remarks",
+      type: "text",
+      placeholder: "Enter Remarks",
     },
   ],
 };
@@ -106,7 +132,6 @@ const AddMachineryScreen = ({ navigation }) => {
 
       if (!result.canceled) {
         const images = result.assets.map((asset) => asset.uri);
-
         setImages((prev) => ({
           ...prev,
           [machineryType]: images,
@@ -121,16 +146,22 @@ const AddMachineryScreen = ({ navigation }) => {
     const schema = machinerySchemas[machineryTitle];
     const machineryDetails = formValues[machineryId] || {};
 
-    // Iterate over the schema to check for required fields
     const requiredFields = schema.filter((field) => field.isRequired);
-    const missingFields = requiredFields.filter(
-      (field) => machineryDetails[field.name] === undefined
-    );
+    const missingOrInvalidFields = requiredFields.filter((field) => {
+      const value = machineryDetails[field.name];
+      if (value === undefined || value.toString().trim() === "") {
+        return true;
+      }
+      if (field.type === "number" && isNaN(value)) {
+        return true;
+      }
+      return false;
+    });
 
-    if (missingFields.length > 0) {
+    if (missingOrInvalidFields.length > 0) {
       Alert.alert(
         "Error",
-        `Please fill in all required fields: ${missingFields
+        `Please fill in all required fields correctly: ${missingOrInvalidFields
           .map((field) => field.label)
           .join(", ")}`
       );
@@ -146,20 +177,16 @@ const AddMachineryScreen = ({ navigation }) => {
     const schema = machinerySchemas[machineryTitle];
     const machineryDetails = {};
 
-    // Iterate over the schema to include all fields
     schema.forEach((field) => {
       if (field.type === "switch") {
-        // Default to false for switches if not in formValues
         machineryDetails[field.name] =
           formValues[machineryId]?.[field.name] || false;
       } else {
-        // Default to empty string for text and number fields if not in formValues
         machineryDetails[field.name] =
           formValues[machineryId]?.[field.name] || "";
       }
     });
 
-    // Navigate to the "Map" screen with complete data
     navigation.navigate("Map", {
       machineryTitle,
       machineryDetails,

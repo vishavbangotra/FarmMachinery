@@ -358,7 +358,7 @@ const ManageMachineryScreen = () => {
               Status: {item.status || "N/A"}
             </Text>
             <Text style={styles.cardDetail}>
-              Rent Per Day: ${item.rentPerDay?.toFixed(2) || "N/A"}
+              Rent Per Day: Rs. {item.rentPerDay?.toFixed(2) || "N/A"}
             </Text>
             {item.type && (
               <Text style={styles.cardDetail}>Type: {item.type}</Text>

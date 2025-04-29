@@ -236,7 +236,8 @@ public class MachineryService {
 
         Rotavator rotavator = new Rotavator();
         setCommonFields(rotavator, dto, owner);
-        rotavator.setSize(dto.getSize());
+        rotavator.setWorkingDepth(dto.getWorkingDepth());
+        rotavator.setBladeCount(dto.getBladeCount());
         return rotavatorRepository.save(rotavator);
     }
 
@@ -244,6 +245,7 @@ public class MachineryService {
      * Sets common fields for a machinery entity.
      */
     private void setCommonFields(Machinery machinery, MachineryRequestDTO dto, User owner) {
+        machinery.setRentPerDay(dto.getRentPerDay());
         machinery.setOwner(owner);
         machinery.setRemarks(dto.getRemarks());
         machinery.setStatus(dto.getStatus());
@@ -267,8 +269,11 @@ public class MachineryService {
      * Validates rotavator-specific fields in the DTO.
      */
     private void validateRotavator(MachineryRequestDTO dto) {
-        if (dto.getSize() == null || dto.getSize() <= 0) {
-            throw new IllegalArgumentException("Invalid blade count");
+        if (dto.getWorkingDepth() == null || dto.getWorkingDepth() <= 0) {
+            throw new IllegalArgumentException("Invalid working Depth");
+        }
+        if (dto.getBladeCount() == null || dto.getBladeCount() <= 0) {
+            throw new IllegalArgumentException("Invalid blade Count");
         }
     }
 }

@@ -13,12 +13,16 @@ public class MachineryRequestDTO {
     @NotNull
     private MachineryType type; // Enum: TRACTOR, ROTAVATOR
 
+    private Integer rentPerDay;
+
     @NotNull
     private Long ownerId;
 
     private String remarks;
     private Long farmId;
     private MachineryStatus status = MachineryStatus.AVAILABLE; // Enum: AVAILABLE, ENGAGED, UNAVAILABLE,
+
+    private String model;
 
     private List<String> imageUrls;
 
@@ -27,5 +31,6 @@ public class MachineryRequestDTO {
     private Boolean is4x4;
 
     // Rotavator-specific
-    private Integer size;
+    private Integer bladeCount;
+    private Integer workingDepth;
 }
