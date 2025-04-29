@@ -22,7 +22,7 @@ import { BottomSheet } from "react-native-btr";
 // Removed unused AuthContext import
 import { COLORS, SIZES, FONTS } from "../../constants/styles"; // Assuming these are correctly defined
 import * as SecureStore from "expo-secure-store";
-
+import { Picker } from '@react-native-picker/picker'; // Import
 const API_BASE_URL = "http://10.0.2.2:8080"; // Or your actual API base URL
 
 /**
@@ -345,7 +345,7 @@ const ManageMachineryScreen = () => {
             />
           ) : (
             <View style={styles.cardPlaceholder}>
-              <Icon name="truck" size={40} color={COLORS.SECONDARY} />{" "}
+              <Icon name="truck" size={40} color={COLORS.PRIMARY} />{" "}
               {/* Changed icon */}
               <Text style={styles.cardPlaceholderText}>No Image</Text>
             </View>
@@ -404,7 +404,7 @@ const ManageMachineryScreen = () => {
               <Icon
                 name="exclamation-circle"
                 size={40}
-                color={COLORS.SECONDARY}
+                color={COLORS.PRIMARY}
               />
               <Text style={styles.emptyText}>No machinery items found.</Text>
               <TouchableOpacity
@@ -438,7 +438,7 @@ const ManageMachineryScreen = () => {
                       accessible={true}
                       accessibilityLabel="Close modal"
                     >
-                      <Icon name="close" size={24} color={COLORS.SECONDARY} />
+                      <Icon name="close" size={24} color={COLORS.PRIMARY} />
                     </TouchableOpacity>
                   </View>
 
@@ -497,22 +497,27 @@ const ManageMachineryScreen = () => {
                   </View>
 
                   {/* Status Section */}
-                  <View style={styles.modalInputRow}>
-                    <Text style={styles.modalLabel}>Status:</Text>
-                    <SegmentedControl
-                      values={statusLabels}
-                      selectedIndex={statusOptions.indexOf(tempModalStatus)}
-                      onChange={(event) =>
-                        setTempModalStatus(
-                          statusOptions[event.nativeEvent.selectedSegmentIndex]
-                        )
-                      }
-                      style={styles.segmentedControl}
-                      tintColor={COLORS.PRIMARY}
-                      backgroundColor={COLORS.INPUT_BG}
-                      fontStyle={{ color: COLORS.SECONDARY }} // Text color for inactive segments
-                      activeFontStyle={{ color: COLORS.WHITE }} // Text color for active segment
-                    />
+                  <View style={styles.stackedInputContainer}>
+                    <Text style={styles.stackedLabel}>Status:</Text>
+                    <View style={styles.pickerContainer}>
+                      {/* Add a container for border/styling */}
+                      <Picker
+                        selectedValue={tempModalStatus}
+                        onValueChange={(itemValue, itemIndex) =>
+                          setTempModalStatus(itemValue)
+                        }
+                        style={styles.pickerStyle} // Style the picker itself
+                        dropdownIconColor={COLORS.PRIMARY} // Optional: style dropdown arrow
+                      >
+                        {statusOptions.map((status, index) => (
+                          <Picker.Item
+                            key={index}
+                            label={statusLabels[index]}
+                            value={status}
+                          />
+                        ))}
+                      </Picker>
+                    </View>
                   </View>
 
                   {/* Rent Per Day Section */}
@@ -636,7 +641,7 @@ const styles = StyleSheet.create({
     paddingBottom: 80, // Ensure space for potential FAB or bottom nav
   },
   card: {
-    backgroundColor: COLORS.WHITE || "#fff",
+    backgroundColor: "#fff",
     borderRadius: SIZES.BORDER_RADIUS || 12,
     marginBottom: SIZES.PADDING || 16,
     shadowColor: "#000",
@@ -659,7 +664,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cardPlaceholderText: {
-    color: COLORS.SECONDARY,
+    color: COLORS.PRIMARY,
     fontSize: SIZES.CAPTION || 14,
     marginTop: 8,
     fontFamily: FONTS.REGULAR,
@@ -669,14 +674,14 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: SIZES.SUBTITLE || 18,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.TERTIARY || "#333", // Darker title
+    fontWeight: "bold",
+    color: COLORS.TEXT_DARK|| "#333", // Darker title
     marginBottom: 6,
   },
   cardDetail: {
     fontSize: SIZES.BODY || 14,
     fontFamily: FONTS.REGULAR,
-    color: COLORS.SECONDARY,
+    color: COLORS.TEXT_DARK || "#333",
     marginBottom: 4,
     lineHeight: 20,
   },
@@ -708,7 +713,7 @@ const styles = StyleSheet.create({
   modalSectionTitle: {
     fontSize: SIZES.BODY || 16,
     fontFamily: FONTS.MEDIUM,
-    color: COLORS.SECONDARY,
+    color: COLORS.PRIMARY,
     marginTop: 16,
     marginBottom: 8,
     borderBottomWidth: 1,
@@ -795,7 +800,7 @@ const styles = StyleSheet.create({
   modalDisplayRow: {
     // For non-editable fields
     flexDirection: "row",
-    alignItems: "flex-start", // Align items at the start for potentially long values
+    alignItems: "center", // Align items at the start for potentially long values
     marginBottom: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
@@ -804,7 +809,7 @@ const styles = StyleSheet.create({
   modalLabel: {
     fontSize: SIZES.BODY || 14,
     fontFamily: FONTS.MEDIUM,
-    color: COLORS.SECONDARY_DARK || "#555",
+    color: COLORS.PRIMARY || "#555",
     marginRight: 10,
     width: 110, // Fixed width for labels
   },
@@ -932,6 +937,48 @@ const styles = StyleSheet.create({
     color: COLORS.SECONDARY_DARK || "#555",
     marginLeft: 12, // Add margin from icon
     fontFamily: FONTS.REGULAR,
+  },
+  stackedInputContainer: {
+    marginBottom: 20, // Increased spacing
+  },
+  stackedLabel: {
+    fontSize: SIZES.BODY || 14,
+    fontFamily: FONTS.MEDIUM,
+    color: COLORS.SECONDARY_DARK || "#555",
+    marginBottom: 8, // Space between label and input/value
+  },
+  pickerContainer: {
+    // Style the container around the picker
+    borderWidth: 1,
+    borderColor: COLORS.BORDER || "#ccc",
+    borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
+    backgroundColor: COLORS.INPUT_BG || "#f8f8f8",
+    height: 48, // Adjust height if needed
+    justifyContent: "center", // Center picker item vertically
+  },
+  pickerStyle: {
+    // height: '100%', // May not work consistently across platforms
+    // width: '100%', // May not work consistently across platforms
+    // Apply color etc. directly if needed, but container handles bg/border
+  },
+  input: {
+    // Adjusted for stacked layout (no flex:1 needed)
+    height: 44,
+    borderColor: COLORS.BORDER || "#ccc",
+    borderWidth: 1,
+    borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.INPUT_BG || "#f8f8f8",
+    fontFamily: FONTS.REGULAR,
+    fontSize: SIZES.BODY || 14,
+    color: COLORS.TERTIARY || "#333",
+  },
+  modalValue: {
+    // Adjusted for stacked layout
+    fontSize: SIZES.BODY || 14,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.TERTIARY || "#333",
+    paddingVertical: 10, // Add padding if needed
   },
 });
 
