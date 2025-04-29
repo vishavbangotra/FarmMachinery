@@ -1,5 +1,7 @@
 package com.farmify.backend.service;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -10,14 +12,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.farmify.backend.dto.MachineryDTO;
+import com.farmify.backend.dto.MachineryRequestDTO;
 import com.farmify.backend.dto.MachinerySearchResultDTO;
 import com.farmify.backend.model.Machinery;
 import com.farmify.backend.model.MachineryImage;
+import com.farmify.backend.model.MachineryStatus;
+import com.farmify.backend.model.MachineryType;
 import com.farmify.backend.model.Rotavator;
 import com.farmify.backend.model.Tractor;
 import com.farmify.backend.model.User;
 import com.farmify.backend.repository.FarmRepository;
-import com.farmify.backend.repository.MachineryImageRepository;
 import com.farmify.backend.repository.MachineryRepository;
 import com.farmify.backend.repository.RotavatorRepository;
 import com.farmify.backend.repository.TractorRepository;
@@ -119,7 +123,7 @@ public class MachineryService {
      * is atomic.
      */
     @Transactional
-    public Machinery createMachinery(MachineryDTO dto, List<MultipartFile> files) {
+    public Machinery createMachinery(MachineryRequestDTO dto, List<MultipartFile> files) {
         User owner = userRepository.findById(dto.getOwnerId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
@@ -154,10 +158,24 @@ public class MachineryService {
     /**
      * Retrieves all machinery owned by a specific user.
      */
-    public Iterable<Machinery> getAllMachineryByOwnerId(Long ownerId) {
+    public ArrayList<MachineryDTO> getAllMachineryByOwnerId(Long ownerId) {
         User user = userRepository.findById(ownerId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        return machineryRepository.findByOwner(user);
+        ArrayList<MachineryDTO> machineryDTOs = new ArrayList<>();
+        machineryRepository.findByOwner(user).forEach(m -> {
+            MachineryDTO machineryDTO = new MachineryDTO();
+            machineryDTO.setId(m.getId());
+            machineryDTO.setImageUrls(machineryImageService.listImageUrls(m.getId()));
+            machineryDTO.setType(m.getType() != null ? MachineryType.valueOf(m.getType().toUpperCase()) : null);
+            machineryDTO.setRentPerDay(m.getRentPerDay() != null ? m.getRentPerDay() : 0.0);
+            machineryDTO.setLatitude(m.getFarmLocation() != null ? m.getFarmLocation().getLatitude() : 0.0);
+            machineryDTO.setLongitude(m.getFarmLocation() != null ? m.getFarmLocation().getLongitude() : 0.0);
+            machineryDTO.setRemarks(m.getRemarks() != null ? m.getRemarks() : "");
+            machineryDTO.setModel(m.getModelInfo() != null ? m.getModelInfo() : "");
+            machineryDTO.setStatus(m.getStatus() != null ? m.getStatus() : MachineryStatus.AVAILABLE);
+            machineryDTOs.add(machineryDTO);
+        });
+        return machineryDTOs;
     }
 
     // Helper Functions
@@ -198,7 +216,7 @@ public class MachineryService {
     /**
      * Creates and saves a tractor entity.
      */
-    private Tractor createTractor(MachineryDTO dto, User owner) {
+    private Tractor createTractor(MachineryRequestDTO dto, User owner) {
         validateTractor(dto);
 
         Tractor tractor = new Tractor();
@@ -211,7 +229,7 @@ public class MachineryService {
     /**
      * Creates and saves a rotavator entity.
      */
-    private Rotavator createRotavator(MachineryDTO dto, User owner) {
+    private Rotavator createRotavator(MachineryRequestDTO dto, User owner) {
         validateRotavator(dto);
 
         Rotavator rotavator = new Rotavator();
@@ -223,7 +241,7 @@ public class MachineryService {
     /**
      * Sets common fields for a machinery entity.
      */
-    private void setCommonFields(Machinery machinery, MachineryDTO dto, User owner) {
+    private void setCommonFields(Machinery machinery, MachineryRequestDTO dto, User owner) {
         machinery.setOwner(owner);
         machinery.setRemarks(dto.getRemarks());
         machinery.setStatus(dto.getStatus());
@@ -234,7 +252,7 @@ public class MachineryService {
     /**
      * Validates tractor-specific fields in the DTO.
      */
-    private void validateTractor(MachineryDTO dto) {
+    private void validateTractor(MachineryRequestDTO dto) {
         if (dto.getHorsepower() == null || dto.getHorsepower() <= 0) {
             throw new IllegalArgumentException("Invalid horsepower");
         }
@@ -246,7 +264,7 @@ public class MachineryService {
     /**
      * Validates rotavator-specific fields in the DTO.
      */
-    private void validateRotavator(MachineryDTO dto) {
+    private void validateRotavator(MachineryRequestDTO dto) {
         if (dto.getSize() == null || dto.getSize() <= 0) {
             throw new IllegalArgumentException("Invalid blade count");
         }

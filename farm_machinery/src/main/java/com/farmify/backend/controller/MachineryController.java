@@ -1,9 +1,7 @@
 package com.farmify.backend.controller;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -11,10 +9,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.farmify.backend.dto.MachineryDTO;
+import com.farmify.backend.dto.MachineryRequestDTO;
 import com.farmify.backend.dto.MachinerySearchResultDTO;
 import com.farmify.backend.model.Machinery;
 import com.farmify.backend.service.JwtService;
-import com.farmify.backend.service.MachineryImageService;
 import com.farmify.backend.service.MachineryService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -32,7 +30,7 @@ public class MachineryController {
     @PreAuthorize("permitAll()")
     public ResponseEntity<Machinery> addMachinery(
             // <-- bind all simple form fields (type, farmId, model, year…) into this DTO:
-            @ModelAttribute MachineryDTO machineryDto,
+            @ModelAttribute MachineryRequestDTO machineryDto,
 
             // <-- pick up zero-or-more file-parts called "files":
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
@@ -79,7 +77,7 @@ public class MachineryController {
     }
 
     @GetMapping
-    public ResponseEntity<Iterable<Machinery>> getAllMachineriesByOwner(
+    public ResponseEntity<ArrayList<MachineryDTO>> getAllMachineriesByOwner(
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
 
         // Check if Authorization header is valid
