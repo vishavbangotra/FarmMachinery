@@ -1,6 +1,7 @@
 package com.farmify.backend.controller;
 
 import com.farmify.backend.dto.*;
+import com.farmify.backend.service.JwtService;
 import com.farmify.backend.service.UserService;
 import com.twilio.exception.ApiException;
 import com.twilio.rest.verify.v2.service.Verification;
@@ -23,6 +24,9 @@ public class AuthController {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    JwtService jwtService;
 
 
     @PostMapping("/send-otp")
@@ -55,10 +59,14 @@ public class AuthController {
                     .create();
 
             if ("approved".equalsIgnoreCase(verificationCheck.getStatus())) {
+                boolean isNewUser = false;
                 if(userService.findByPhoneNumber(request.getPhoneNumber()) == null) {
                     userService.createUser(request.getPhoneNumber());
+                    isNewUser = true;
                 }
-                return ResponseEntity.ok(new AuthResponse(true, "Login successful", "TOKEN"));
+                Long userId = userService.findByPhoneNumber(request.getPhoneNumber()).getId();
+                String token = jwtService.generateToken(userId, request.getPhoneNumber());
+                return ResponseEntity.ok(new AuthResponse(true, "Login successful", token, isNewUser));
             } else {
                 logger.warn("Invalid OTP for phone number: {}", request.getPhoneNumber());
                 return ResponseEntity.ok(new OtpResponse(false, "Invalid OTP", verificationCheck.getStatus()));

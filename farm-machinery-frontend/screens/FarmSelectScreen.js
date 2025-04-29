@@ -1,7 +1,7 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import MapScreen from "./MapScreen";
+import FarmSelectScreen from "./FarmSelectScreen";
 
 const Stack = createStackNavigator();
 
@@ -13,7 +13,7 @@ const FarmSelectScreen = () => {
       <Stack.Navigator>
         <Stack.Screen name="Map">
           {(props) => (
-            <MapScreen
+            <FarmSelectScreen
               {...props}
               savedFarms={farms}
               onSelectFarm={handleSelectFarm}

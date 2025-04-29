@@ -7,41 +7,16 @@ import {
   StyleSheet,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
-import 'dotenv/config'
 import * as CONSTANTS from "../constants/styles";
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
-import { initializeApp } from "firebase/app";
-import {
-  getAuth,
-  signInWithPhoneNumber,
-  PhoneAuthProvider,
-} from "firebase/auth";
-
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
-};
-
-const app = initializeApp(firebaseConfig,{
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-});
-const auth = getAuth(app);
+import { AuthContext } from "../context/AuthContext";
+import { useContext } from "react";
+import * as SecureStore from "expo-secure-store";
 
 const { width } = Dimensions.get("window");
 const OTP_BOX_WIDTH = width * 0.12;
+const API_BASE_URL = "http://10.0.2.2:8080/auth";
 
 const LoginScreen = ({ navigation }) => {
   const [countryCode, setCountryCode] = useState("+91");
@@ -49,31 +24,70 @@ const LoginScreen = ({ navigation }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [verificationId, setVerificationId] = useState("");
-  const recaptchaVerifier = useRef(null);
-  const otpInputs = [];
+  const otpInputs = useRef([]);
+
+  const { setIsAuthenticated } = useContext(AuthContext);
 
   const handleSendOtp = async () => {
     try {
-      if (phoneNumber.length !== 10) {
-        Alert.alert("Error", "Please enter a valid 10-digit phone number");
+      const fullNumber = `${countryCode}${phoneNumber}`;
+      if (!fullNumber.match(/^\+\d{10,15}$/)) {
+        Alert.alert("Error", "Please enter a valid phone number");
         return;
       }
 
       setLoading(true);
-      const fullPhoneNumber = `${countryCode}${phoneNumber}`;
-      const phoneProvider = await signInWithPhoneNumber(
-        auth,
-        fullPhoneNumber,
-        recaptchaVerifier.current
-      );
+      const response = await fetch(`${API_BASE_URL}/send-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ phoneNumber: fullNumber }),
+      });
 
-      setVerificationId(phoneProvider.verificationId);
-      setIsOtpSent(true);
-      Alert.alert(
-        "OTP Sent",
-        "Please check your phone for the verification code"
-      );
+      const data = await response.json();
+      if (data.success) {
+        setIsOtpSent(true);
+      } else {
+        throw new Error(data.message || "Failed to send OTP");
+      }
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    try {
+      const otpString = otp.join("");
+      if (otpString.length !== 6) {
+        Alert.alert("Error", "Please enter a 6-digit OTP");
+        return;
+      }
+
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phoneNumber: `${countryCode}${phoneNumber}`,
+          otp: otpString,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        await SecureStore.setItemAsync("jwt", data.token);
+        setIsAuthenticated(true);
+        if(data.IsNewUser){
+          navigation.navigate("Profile");
+        }
+      } else {
+        throw new Error(data.message || "OTP verification failed");
+      }
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {
@@ -83,79 +97,68 @@ const LoginScreen = ({ navigation }) => {
 
   const handleOtpDigitChange = (text, index) => {
     if (text.length > 1 || (text && !/^\d$/.test(text))) return;
+
     const newOtp = [...otp];
     newOtp[index] = text;
     setOtp(newOtp);
 
     if (text && index < 5) {
-      otpInputs[index + 1].focus();
+      otpInputs.current[index + 1].focus();
+    } else if (!text && index > 0) {
+      otpInputs.current[index - 1].focus();
     }
   };
 
-  const handleVerifyOtp = async () => {
-    try {
-      setLoading(true);
-      const otpString = otp.join("");
-      if (otpString.length !== 6) {
-        Alert.alert("Error", "Please enter a 6-digit OTP");
-        return;
-      }
-
-      const credential = PhoneAuthProvider.credential(
-        verificationId,
-        otpString
-      );
-
-      await signInWithCredential(auth, credential);
-      navigation.navigate("Home");
-    } catch (error) {
-      Alert.alert("Error", "Invalid OTP code");
-    } finally {
-      setLoading(false);
-    }
+  const handleResendOtp = async () => {
+    await handleSendOtp();
   };
 
   return (
     <View style={styles.container}>
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={firebaseConfig}
-        attemptInvisibleVerification={true}
-      />
+      <Text style={styles.title}>Welcome Back!</Text>
+      <Text style={styles.subtitle}>Please sign in to continue</Text>
 
-      <Text style={[styles.title, { marginBottom: 20 }]}>Login</Text>
       {!isOtpSent ? (
-        <>
-          <View style={styles.phoneContainer}>
+        <View style={styles.formContainer}>
+          <View style={styles.inputContainer}>
             <TextInput
-              style={styles.countryCodeInput}
+              style={[styles.input, styles.countryCode]}
               value={countryCode}
               onChangeText={setCountryCode}
               keyboardType="phone-pad"
-              maxLength={3}
+              maxLength={4}
             />
             <TextInput
-              style={styles.phoneInput}
+              style={[styles.input, styles.phoneInput]}
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               keyboardType="phone-pad"
+              placeholder="Enter your phone number"
+              placeholderTextColor={CONSTANTS.COLORS.TEXT_DARK}
               maxLength={10}
-              placeholder="Enter phone number"
             />
           </View>
+
           <TouchableOpacity
             style={styles.button}
             onPress={handleSendOtp}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? "Sending..." : "Send OTP"}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color={CONSTANTS.COLORS.BACKGROUND} />
+            ) : (
+              <Text style={styles.buttonText}>Send OTP</Text>
+            )}
           </TouchableOpacity>
-        </>
+        </View>
       ) : (
-        <>
-          <Text style={styles.subtitle}>Enter the 6-digit OTP</Text>
+        <View style={styles.formContainer}>
+          <Text style={styles.otpTitle}>Enter Verification Code</Text>
+          <Text style={styles.otpSubtitle}>
+            Sent to {countryCode}
+            {phoneNumber}
+          </Text>
+
           <View style={styles.otpContainer}>
             {otp.map((digit, index) => (
               <TextInput
@@ -165,20 +168,35 @@ const LoginScreen = ({ navigation }) => {
                 onChangeText={(text) => handleOtpDigitChange(text, index)}
                 keyboardType="numeric"
                 maxLength={1}
-                ref={(ref) => (otpInputs[index] = ref)}
+                ref={(ref) => (otpInputs.current[index] = ref)}
+                autoFocus={index === 0}
               />
             ))}
           </View>
+
           <TouchableOpacity
             style={styles.button}
             onPress={handleVerifyOtp}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? "Verifying..." : "Verify OTP"}
+            {loading ? (
+              <ActivityIndicator color={CONSTANTS.COLORS.BACKGROUND} />
+            ) : (
+              <Text style={styles.buttonText}>Verify OTP</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.resendContainer}
+            onPress={handleResendOtp}
+            disabled={loading}
+          >
+            <Text style={styles.resendText}>
+              Didn't receive code?{" "}
+              <Text style={styles.resendLink}>Resend OTP</Text>
             </Text>
           </TouchableOpacity>
-        </>
+        </View>
       )}
     </View>
   );
@@ -190,67 +208,97 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: CONSTANTS.COLORS.BACKGROUND,
+    paddingHorizontal: 24,
   },
   title: {
-    fontSize: CONSTANTS.SIZES.TITLE,
+    fontSize: 32,
     fontFamily: CONSTANTS.FONTS.BOLD,
-    color: CONSTANTS.COLORS.TEXT,
+    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: CONSTANTS.SIZES.SUBTITLE,
-    color: CONSTANTS.COLORS.TEXT,
-    marginBottom: 20,
+    fontSize: 16,
+    fontFamily: CONSTANTS.FONTS.REGULAR,
+    color: CONSTANTS.COLORS.SECONDARY,
+    marginBottom: 40,
   },
-  phoneContainer: { flexDirection: "row", marginBottom: 20 },
-  countryCodeInput: {
-    width: 60,
-    height: 50,
-    borderWidth: 1,
-    borderColor: CONSTANTS.COLORS.BORDER,
+  formContainer: {
+    width: "100%",
+    alignItems: "center",
+  },
+  inputContainer: {
+    flexDirection: "row",
+    width: "100%",
+    marginBottom: 24,
+  },
+  input: {
+    backgroundColor: CONSTANTS.COLORS.SECONDARY,
+    borderRadius: 8,
+    padding: 16,
+    fontSize: 16,
+    color: CONSTANTS.COLORS.TEXT_DARK,
+  },
+  countryCode: {
+    width: 80,
+    marginRight: 12,
     textAlign: "center",
-    marginRight: 10,
   },
   phoneInput: {
-    width: 200,
-    height: 50,
-    borderWidth: 1,
-    borderColor: CONSTANTS.COLORS.BORDER,
-    paddingHorizontal: 10,
+    flex: 1,
+  },
+  button: {
+    backgroundColor: CONSTANTS.COLORS.PRIMARY,
+    width: "100%",
+    padding: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  buttonText: {
+    color: CONSTANTS.COLORS.BACKGROUND,
+    fontSize: 16,
+    fontFamily: CONSTANTS.FONTS.SEMIBOLD,
   },
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: OTP_BOX_WIDTH * 6 + 30,
-    marginBottom: 20,
+    width: "100%",
+    marginBottom: 32,
   },
   otpInput: {
     width: OTP_BOX_WIDTH,
-    height: 50,
+    height: OTP_BOX_WIDTH,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: CONSTANTS.COLORS.BORDER,
+    backgroundColor: CONSTANTS.COLORS.SECONDARY,
     textAlign: "center",
+    fontSize: 18,
+    color: CONSTANTS.COLORS.TEXT_DARK,
   },
-  button: {
-    backgroundColor: CONSTANTS.COLORS.PRIMARY,
-    padding: 15,
-    borderRadius: 4,
+  otpTitle: {
+    fontSize: 20,
+    fontFamily: CONSTANTS.FONTS.BOLD,
+    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    marginBottom: 8,
   },
-  buttonText: {
-    color: CONSTANTS.COLORS.BACKGROUND,
-    fontSize: CONSTANTS.SIZES.BUTTON,
+  otpSubtitle: {
+    fontSize: 14,
+    fontFamily: CONSTANTS.FONTS.REGULAR,
+    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    marginBottom: 32,
+  },
+  resendContainer: {
+    marginTop: 16,
+  },
+  resendText: {
+    color: CONSTANTS.COLORS.TEXT_LIGHT,
     fontFamily: CONSTANTS.FONTS.REGULAR,
   },
-  countryCodeInput: {
-    // ... existing styles
-    color: CONSTANTS.COLORS.TEXT,
-  },
-  phoneInput: {
-    // ... existing styles
-    color: CONSTANTS.COLORS.TEXT,
-  },
-  otpInput: {
-    // ... existing styles
-    color: CONSTANTS.COLORS.TEXT,
+  resendLink: {
+    color: CONSTANTS.COLORS.PRIMARY,
+    fontFamily: CONSTANTS.FONTS.SEMIBOLD,
   },
 });
 

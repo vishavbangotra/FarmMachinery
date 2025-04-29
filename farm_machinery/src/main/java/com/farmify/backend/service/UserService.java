@@ -14,6 +14,15 @@ public class UserService {
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
+
+    public void updateUser(String phoneNumber, String imageUrl, String name) {
+        User user = userRepository.findByPhoneNumber(phoneNumber).orElse(null);
+        if (user != null) {
+            user.setImageUrl(imageUrl);
+            user.setName(name);
+            userRepository.save(user);
+        } 
+    }
     
     public User findByPhoneNumber(String phoneNumber) {
         return userRepository.findByPhoneNumber(phoneNumber).orElse(null);

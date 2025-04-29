@@ -15,29 +15,27 @@ import * as Location from "expo-location";
 import { FAB, Button as PaperButton } from "react-native-paper";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { BottomSheet } from "react-native-btr";
-import Slider from "@react-native-community/slider";
-import * as Haptics from "expo-haptics"; // For haptic feedback
+import * as Haptics from "expo-haptics";
+import { useContext } from "react";
+import { AuthContext } from "../../context/AuthContext";
 
 // App constants
 const COLORS = {
-  PRIMARY: "#34C759", // Softer green for elegance
-  SECONDARY: "#F2F2F7", // Light gray for backgrounds
-  ACCENT: "#5856D6", // Vibrant purple for highlights
-  TEXT: "#1C2526", // Darker text for contrast
-  BORDER: "#E5E5EA", // Subtle border color
+  PRIMARY: "#34C759",
+  SECONDARY: "#F2F2F7",
+  ACCENT: "#5856D6",
+  TEXT: "#1C2526",
+  BORDER: "#E5E5EA",
 };
 
-const MapScreen = ({ route, navigation }) => {
+const SelectFarmForMachinery = ({ navigation, route }) => {
+  // Updated farm format: each object has id, description, latitude, and longitude.
   const savedFarms = [
     {
-      id: "1",
-      name: "Farm Jammu Auto",
-      location: { latitude: 32.7300307600586, longitude: 74.85615100711584 },
-    },
-    {
-      id: "1742126686607",
-      name: "Farm Jammu 2",
-      location: { latitude: 32.72915219022547, longitude: 74.85791858285666 },
+      id: 2,
+      description: "Test Farm 2",
+      latitude: 40.7128,
+      longitude: -74.0063,
     },
   ];
 
@@ -47,28 +45,84 @@ const MapScreen = ({ route, navigation }) => {
   const [addingFarm, setAddingFarm] = useState(false);
   const [tempLocation, setTempLocation] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  // We'll use the farmName field for the description now.
   const [farmName, setFarmName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [showFarmList, setShowFarmList] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [distance, setDistance] = useState(0);
   const mapRef = useRef(null);
-  const fabScale = useRef(new Animated.Value(1)).current; // For FAB animations
+  const fabScale = useRef(new Animated.Value(1)).current;
+  const { userId } = useContext(AuthContext);
 
-  // Set default selected farm and center map
+  // Fetch saved farms from API (assumed to now return farms in the new format)
+  useEffect(() => {
+    async function fetchFarms() {
+      try {
+        const response = await fetch(
+          `http://10.0.2.2:8080/api/farms/user/${userId}`
+        );
+        const data = await response.json();
+        setFarms(data);
+        if (data.length > 0 && !selectedFarm) {
+          setSelectedFarm(data[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching farms:", error);
+      }
+    }
+    fetchFarms();
+  }, []);
+
+  // Set default selected farm and center map using the new format
   useEffect(() => {
     if (farms.length > 0 && !selectedFarm) {
       const defaultFarm = farms[0];
       setSelectedFarm(defaultFarm);
       setRegion({
-        latitude: defaultFarm.location.latitude,
-        longitude: defaultFarm.location.longitude,
+        latitude: defaultFarm.latitude,
+        longitude: defaultFarm.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       });
     }
   }, [farms, selectedFarm]);
+
+  const handleAddMachinery = async (farmId, machineryDetails) => {
+    setIsSaving(true);
+    try {
+      if (!route?.params?.machineryTitle) {
+        throw new Error("Machinery title is missing in route parameters");
+      }
+      if (!userId) {
+        throw new Error("User ID is not defined");
+      }
+      const response = await fetch(`http://10.0.2.2:8080/api/machinery/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: route.params.machineryTitle.toUpperCase(),
+          farmId,
+          ownerId: userId,
+          ...machineryDetails,
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(
+          `Error adding machinery: ${response.status} - ${errorText}`
+        );
+      }
+      const data = await response.json();
+      navigation.navigate("ManageMachinery", { machinery: data });
+    } catch (error) {
+      console.error("Error adding machinery:", error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Request location permissions
   useEffect(() => {
@@ -97,8 +151,8 @@ const MapScreen = ({ route, navigation }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     mapRef.current?.animateToRegion(
       {
-        latitude: farm.location.latitude,
-        longitude: farm.location.longitude,
+        latitude: farm.latitude,
+        longitude: farm.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
       },
@@ -107,7 +161,24 @@ const MapScreen = ({ route, navigation }) => {
   };
 
   const handleAddFarm = async (farm) => {
-    const newFarm = { ...farm, id: Date.now().toString() };
+    console.log(farm);
+    const response = await fetch(`http://10.0.2.2:8080/api/farms/add`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ownerId: userId,
+        description: farm.description,
+        latitude: farm.latitude,
+        longitude: farm.longitude,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error("Error adding farm:", response.status);
+    }
+    const id = await response.json();
+    const newFarm = { ...farm, id: id };
     setFarms([...farms, newFarm]);
     return newFarm;
   };
@@ -135,10 +206,15 @@ const MapScreen = ({ route, navigation }) => {
   };
 
   const handleSaveFarm = async () => {
-    if (farmName && tempLocation) {
+    if (farmName.trim() && tempLocation) {
       setIsSaving(true);
       try {
-        const newFarm = { name: farmName, location: tempLocation };
+        // New farm using the new format: id, description, latitude, and longitude.
+        const newFarm = {
+          description: farmName.trim(),
+          latitude: tempLocation.latitude,
+          longitude: tempLocation.longitude,
+        };
         const savedFarm = await handleAddFarm(newFarm);
         handleSelectFarm(savedFarm);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -172,7 +248,6 @@ const MapScreen = ({ route, navigation }) => {
     }
   };
 
-  // FAB animation
   const animateFab = () => {
     Animated.spring(fabScale, {
       toValue: 1.1,
@@ -197,15 +272,15 @@ const MapScreen = ({ route, navigation }) => {
           onPress={handleMapPress}
           onLongPress={handleLongPress}
           provider="google"
-          customMapStyle={mapStyle}
         >
           {farms.map((farm) => (
             <Marker
-              key={`${farm.id}-${
-                selectedFarm?.id === farm.id ? "selected" : "default"
-              }`}
-              coordinate={farm.location}
-              title={farm.name}
+              key={farm.id}
+              coordinate={{
+                latitude: farm.latitude,
+                longitude: farm.longitude,
+              }}
+              title={farm.description}
               onPress={() => handleSelectFarm(farm)}
               pinColor={
                 selectedFarm?.id === farm.id ? COLORS.PRIMARY : COLORS.ACCENT
@@ -240,7 +315,7 @@ const MapScreen = ({ route, navigation }) => {
         />
       </View>
 
-      {/* Top Controls */}
+      {/* Top Controls - Show only selected farm */}
       {selectedFarm && (
         <View style={styles.topControlsContainer}>
           <View style={styles.selectedFarmContainer}>
@@ -250,21 +325,10 @@ const MapScreen = ({ route, navigation }) => {
               color={COLORS.PRIMARY}
               style={styles.checkIcon}
             />
-            <Text style={styles.selectedFarmText}>{selectedFarm.name}</Text>
+            <Text style={styles.selectedFarmText}>
+              {selectedFarm.description}
+            </Text>
           </View>
-          <Text style={styles.distanceHeader}>Search Radius</Text>
-          <Text style={styles.distanceText}>{distance} km</Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={100}
-            step={1}
-            value={distance}
-            onValueChange={setDistance}
-            minimumTrackTintColor={COLORS.PRIMARY}
-            maximumTrackTintColor={COLORS.BORDER}
-            thumbTintColor={COLORS.PRIMARY}
-          />
         </View>
       )}
 
@@ -290,19 +354,17 @@ const MapScreen = ({ route, navigation }) => {
         {selectedFarm && (
           <FAB
             style={[styles.fab, { backgroundColor: COLORS.PRIMARY }]}
-            icon="arrow-right"
-            label="Search"
-            onPress={() =>
-              navigation.navigate("MachinerySearch", {
-                farm: selectedFarm,
-                distance,
-              })
-            }
+            icon="plus"
+            label="Add Machinery"
+            onPress={() => {
+              const machineryDetails = route.params.machineryDetails;
+              handleAddMachinery(selectedFarm.id, machineryDetails);
+              navigation.navigate("ManageMachinery", { farm: selectedFarm });
+            }}
           />
         )}
       </View>
-
-      {/* Bottom Sheet */}
+      {/* Bottom Sheet for Farm List */}
       <BottomSheet
         visible={showFarmList}
         onBackButtonPress={() => setShowFarmList(false)}
@@ -317,14 +379,14 @@ const MapScreen = ({ route, navigation }) => {
                 style={styles.farmItem}
                 onPress={() => handleSelectFarm(farm)}
               >
-                <Text style={styles.farmName}>{farm.name}</Text>
+                <Text style={styles.farmName}>{farm.description}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
       </BottomSheet>
 
-      {/* Modal */}
+      {/* Modal for Adding Farm */}
       <Modal visible={showForm} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -358,21 +420,6 @@ const MapScreen = ({ route, navigation }) => {
   );
 };
 
-// Custom Map Style (optional)
-const mapStyle = [
-  {
-    featureType: "road",
-    elementType: "geometry",
-    stylers: [{ color: "#F2F2F7" }],
-  },
-  {
-    featureType: "landscape",
-    elementType: "geometry",
-    stylers: [{ color: "#E5E5EA" }],
-  },
-];
-
-// Styles
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
@@ -411,18 +458,9 @@ const styles = StyleSheet.create({
   selectedFarmContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
   },
   checkIcon: { marginRight: 5 },
   selectedFarmText: { fontSize: 16, fontWeight: "600", color: COLORS.TEXT },
-  distanceHeader: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.TEXT,
-    marginBottom: 5,
-  },
-  distanceText: { fontSize: 14, color: COLORS.TEXT, marginBottom: 5 },
-  slider: { width: "100%", height: 40 },
   controlsContainer: { position: "absolute", bottom: 30, right: 20, gap: 10 },
   fab: { borderRadius: 30, paddingHorizontal: 10 },
   bottomSheet: {
@@ -480,4 +518,4 @@ const styles = StyleSheet.create({
   saveButton: { marginTop: 10, borderRadius: 10 },
 });
 
-export default MapScreen;
+export default SelectFarmForMachinery;

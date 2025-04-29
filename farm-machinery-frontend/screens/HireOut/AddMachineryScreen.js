@@ -1,83 +1,327 @@
-// screens/AddMachineryScreen.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  FlatList,
+  LayoutAnimation,
+  Platform,
+  UIManager,
+  TextInput,
+  Switch,
+  Image,
   ScrollView,
+  Alert,
 } from "react-native";
-import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-// Sample machine data with title and description
+// Enable LayoutAnimation on Android
+if (Platform.OS === "android") {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
+
 const MACHINES = [
-  {
-    id: "tractor",
-    title: "Tractor",
-    description: "Versatile for plowing and towing",
-  },
-  {
-    id: "combine",
-    title: "Combine",
-    description: "Harvests crops efficiently",
-  },
-  {
-    id: "drone",
-    title: "Drone",
-    description: "Precision farming and monitoring",
-  },
+  { id: "tractor", title: "Tractor", icon: "tractor" },
+  { id: "rotavator", title: "Rotavator", icon: "screwdriver" },
 ];
 
-const AddMachineryScreen = ({ navigation }) => {
-  const [selectedMachineId, setSelectedMachineId] = useState("tractor");
+const machinerySchemas = {
+  Tractor: [
+    {
+      name: "model",
+      label: "Model",
+      type: "text",
+      placeholder: "Enter model",
+      isRequired: true,
+    },
+    {
+      name: "horsepower",
+      label: "Horse Power",
+      type: "number",
+      placeholder: "Enter horsepower",
+      isRequired: true,
+    },
+    { name: "is4x4", label: "4x4 Capability", type: "switch" },
+    {
+      name: "rentPerDay",
+      label: "Rent Per Day",
+      type: "number",
+      placeholder: "Enter rent per day",
+      isRequired: true,
+    },
+    {
+      name: "remarks",
+      label: "Remarks",
+      type: "text",
+      placeholder: "Enter Remarks",
+    },
+  ],
+  Rotavator: [
+    { name: "model", label: "Model", type: "text", placeholder: "Enter model" },
+    {
+      name: "bladeCount",
+      label: "Blade Count",
+      type: "number",
+      placeholder: "Enter Blade Count",
+    },
+    {
+      name: "workingDepth",
+      label: "Working Depth",
+      type: "number",
+      placeholder: "Enter Working Depth",
+    },
+    {
+      name: "rentPerDay",
+      label: "Rent Per Day",
+      type: "number",
+      placeholder: "Enter rent per day",
+      isRequired: true,
+    },
+    {
+      name: "remarks",
+      label: "Remarks",
+      type: "text",
+      placeholder: "Enter Remarks",
+    },
+  ],
+};
 
-  const handleNextPress = () => {
-    const selectedMachine = MACHINES.find(
-      (machine) => machine.id === selectedMachineId
-    );
-    navigation.navigate("AddMachineryDetailScreen", {
-      machineryTitle: selectedMachine.title,
+const AddMachineryScreen = ({ navigation }) => {
+  const [expandedMachineId, setExpandedMachineId] = useState(null);
+  const [formValues, setFormValues] = useState({});
+  const [images, setImages] = useState({});
+
+  useEffect(() => {
+    (async () => {
+      if (Platform.OS !== "web") {
+        const { status } =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          alert("Sorry, we need camera roll permissions to make this work!");
+        }
+      }
+    })();
+  }, []);
+
+  const toggleExpand = (id) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedMachineId(expandedMachineId === id ? null : id);
+  };
+
+  const handleChange = (machineryId, name, value) => {
+    setFormValues((prev) => ({
+      ...prev,
+      [machineryId]: { ...prev[machineryId], [name]: value },
+    }));
+  };
+
+  const pickImages = async (machineryType) => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        selectionLimit: 5,
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        const images = result.assets.map((asset) => asset.uri);
+        setImages((prev) => ({
+          ...prev,
+          [machineryType]: images,
+        }));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const validateForm = (machineryId, machineryTitle) => {
+    const schema = machinerySchemas[machineryTitle];
+    const machineryDetails = formValues[machineryId] || {};
+
+    const requiredFields = schema.filter((field) => field.isRequired);
+    const missingOrInvalidFields = requiredFields.filter((field) => {
+      const value = machineryDetails[field.name];
+      if (value === undefined || value.toString().trim() === "") {
+        return true;
+      }
+      if (field.type === "number" && isNaN(value)) {
+        return true;
+      }
+      return false;
     });
+
+    if (missingOrInvalidFields.length > 0) {
+      Alert.alert(
+        "Error",
+        `Please fill in all required fields correctly: ${missingOrInvalidFields
+          .map((field) => field.label)
+          .join(", ")}`
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = (machineryId, machineryTitle) => {
+    if (!validateForm(machineryId, machineryTitle)) return;
+
+    const schema = machinerySchemas[machineryTitle];
+    const machineryDetails = {};
+
+    schema.forEach((field) => {
+      if (field.type === "switch") {
+        machineryDetails[field.name] =
+          formValues[machineryId]?.[field.name] || false;
+      } else {
+        machineryDetails[field.name] =
+          formValues[machineryId]?.[field.name] || "";
+      }
+    });
+
+    navigation.navigate("Map", {
+      machineryTitle,
+      machineryDetails,
+      images: images[machineryId] || [],
+    });
+  };
+
+  const renderItem = ({ item }) => {
+    const isExpanded = item.id === expandedMachineId;
+    return (
+      <View style={styles.machineryItem}>
+        <TouchableOpacity
+          style={styles.headerContainer}
+          onPress={() => toggleExpand(item.id)}
+        >
+          <MaterialCommunityIcons
+            name={item.icon}
+            size={28}
+            color={COLORS.TERTIARY}
+            style={styles.icon}
+          />
+          <Text style={styles.headerText}>{item.title}</Text>
+          <MaterialCommunityIcons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={24}
+            color={COLORS.TERTIARY}
+          />
+        </TouchableOpacity>
+        {isExpanded && (
+          <View style={styles.formContainer}>
+            {machinerySchemas[item.title].map((field, index) => (
+              <View key={index} style={styles.fieldContainer}>
+                {field.type === "switch" ? (
+                  <View style={styles.switchContainer}>
+                    <Text style={styles.fieldLabel}>{field.label}</Text>
+                    <Switch
+                      trackColor={{ false: "black", true: COLORS.SECONDARY }}
+                      thumbColor={
+                        formValues[item.id]?.[field.name]
+                          ? COLORS.PRIMARY
+                          : "rgb(63, 106, 143)"
+                      }
+                      ios_backgroundColor={COLORS.BORDER}
+                      value={!!formValues[item.id]?.[field.name]}
+                      onValueChange={(value) =>
+                        handleChange(item.id, field.name, value)
+                      }
+                    />
+                  </View>
+                ) : (
+                  <View>
+                    <Text style={styles.fieldLabel}>{field.label}</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={field.placeholder}
+                      placeholderTextColor={COLORS.TEXT_DARK}
+                      keyboardType={
+                        field.type === "number" ? "numeric" : "default"
+                      }
+                      value={formValues[item.id]?.[field.name] || ""}
+                      onChangeText={(text) =>
+                        handleChange(item.id, field.name, text)
+                      }
+                    />
+                  </View>
+                )}
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={[GLOBAL_STYLES.button, styles.imagePickerButton]}
+              onPress={() => pickImages(item.id)}
+            >
+              <MaterialCommunityIcons
+                name="camera"
+                size={24}
+                color="white"
+                style={styles.buttonIcon}
+              />
+              <Text style={styles.buttonText}>
+                {images[item.id]?.length > 0 ? "Change Images" : "Add Images"}
+              </Text>
+            </TouchableOpacity>
+
+            {images[item.id]?.length > 0 && (
+              <ScrollView horizontal style={styles.imagePreviewContainer}>
+                {images[item.id].map((uri, idx) => (
+                  <View key={idx} style={styles.imageWrapper}>
+                    <Image
+                      source={{ uri }}
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() =>
+                        setImages((prev) => ({
+                          ...prev,
+                          [item.id]: prev[item.id].filter(
+                            (_, index) => index !== idx
+                          ),
+                        }))
+                      }
+                    >
+                      <MaterialCommunityIcons
+                        name="close"
+                        size={20}
+                        color="white"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity
+              style={GLOBAL_STYLES.button}
+              onPress={() => handleSubmit(item.id, item.title)}
+            >
+              <Text style={styles.buttonText}>Submit {item.title}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.header}>Select Your Machinery</Text>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {MACHINES.map((machine) => (
-          <TouchableOpacity
-            key={machine.id}
-            style={[
-              GLOBAL_STYLES.tile,
-              selectedMachineId === machine.id && GLOBAL_STYLES.selectedTile,
-            ]}
-            onPress={() => setSelectedMachineId(machine.id)}
-          >
-            <Text
-              style={[
-                GLOBAL_STYLES.tileTitle,
-                selectedMachineId === machine.id && GLOBAL_STYLES.selectedTileTitle,
-              ]}
-            >
-              {machine.title}
-            </Text>
-            <Text
-              style={[
-                GLOBAL_STYLES.tileDescription,
-                selectedMachineId === machine.id &&
-                  GLOBAL_STYLES.selectedTileDescription,
-              ]}
-            >
-              {machine.description}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      <TouchableOpacity style={styles.nextButton} onPress={handleNextPress}>
-        <Text style={styles.nextButtonText}>Next</Text>
-      </TouchableOpacity>
+      <FlatList
+        data={MACHINES}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContainer}
+      />
     </SafeAreaView>
   );
 };
@@ -86,30 +330,100 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
-    padding: SIZES.PADDING,
+    paddingHorizontal: SIZES.PADDING,
+    paddingTop: SIZES.MARGIN_LARGE,
   },
-  header: {
-    fontSize: SIZES.TITLE,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.TERTIARY,
-    marginBottom: SIZES.MARGIN_LARGE,
-    textAlign: "center",
-  },
-  scrollContainer: {
+  listContainer: {
     paddingBottom: SIZES.MARGIN_LARGE,
   },
-  nextButton: {
-    backgroundColor: COLORS.PRIMARY,
-    paddingVertical: SIZES.MARGIN_MEDIUM,
-    paddingHorizontal: SIZES.PADDING,
+  machineryItem: {
+    backgroundColor: COLORS.INPUT_BG,
     borderRadius: SIZES.BORDER_RADIUS,
-    alignItems: "center",
-    marginTop: SIZES.MARGIN_LARGE,
+    marginBottom: SIZES.MARGIN_MEDIUM,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  nextButtonText: {
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: SIZES.PADDING,
+    backgroundColor: COLORS.PRIMARY,
+  },
+  headerText: {
+    flex: 1,
     fontSize: SIZES.BUTTON_TEXT,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.INPUT_BG,
+    fontWeight: "700",
+    fontFamily: FONTS.MEDIUM,
+    color: COLORS.TEXT_DARK,
+    marginLeft: SIZES.MARGIN_SMALL,
+  },
+  icon: {
+    marginRight: SIZES.MARGIN_SMALL,
+  },
+  formContainer: {
+    padding: SIZES.PADDING,
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  fieldContainer: {
+    marginBottom: 12,
+  },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  fieldLabel: {
+    marginBottom: 4,
+    fontWeight: "bold",
+    color: COLORS.SECONDARY,
+  },
+  input: {
+    height: 50,
+    backgroundColor: COLORS.SECONDARY,
+    borderColor: COLORS.SECONDARY,
+    borderWidth: 2,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    color: COLORS.TEXT_DARK,
+    textAlignVertical: "center",
+  },
+  imagePickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  imagePreviewContainer: {
+    flexDirection: "row",
+    marginVertical: SIZES.MARGIN_SMALL,
+  },
+  imageWrapper: {
+    position: "relative",
+    marginRight: SIZES.MARGIN_SMALL,
+  },
+  imagePreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+  },
+  removeButton: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 10,
+    padding: 2,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

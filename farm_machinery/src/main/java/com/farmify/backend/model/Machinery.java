@@ -1,7 +1,13 @@
 package com.farmify.backend.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -21,9 +27,32 @@ public abstract class Machinery {
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private User owner;
-    private String imageUrl;
+    
+    @OneToMany(mappedBy = "machinery", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<MachineryImage> images = new ArrayList<>();
+
+    private String modelInfo;
+    
+    @ManyToOne
+    @JoinColumn(name = "farm_id")
+    private Farm farmLocation;
+
     private String remarks;
-    private double latitude;
-    private double longitude;
-    private boolean available;
+    
+    private MachineryStatus status;
+
+    // Rent per day in rupees
+    private Integer rentPerDay;
+
+    @JsonProperty("type")
+    public String getType() {
+        if (this instanceof Tractor) {
+            return "tractor";
+        } else if (this instanceof Rotavator) {
+            return "rotavator";
+        }
+        return null; 
+    }
+
 }
