@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import com.farmify.backend.dto.MachineryDTO;
 import com.farmify.backend.dto.MachineryRequestDTO;
 import com.farmify.backend.dto.MachinerySearchResultDTO;
+import com.farmify.backend.dto.UpdateMachineryDTO;
 import com.farmify.backend.model.Machinery;
 import com.farmify.backend.service.JwtService;
 import com.farmify.backend.service.MachineryService;
@@ -88,6 +89,36 @@ public class MachineryController {
 
         Long ownerId = jwtService.extractUserId(token);
         return ResponseEntity.ok(machineryService.getAllMachineryByOwnerId(ownerId));
+    }
+
+    @PutMapping(value = "/update/{id}")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Machinery> updateMachinery(
+            @PathVariable Long id,
+            @RequestBody UpdateMachineryDTO dto,
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String token = authorizationHeader.substring("Bearer ".length()).trim();
+        Long userId = jwtService.extractUserId(token);
+
+        try {
+            Machinery machinery = machineryService.getMachineryById(id);
+            if (!userId.equals(machinery.getOwner().getId())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+
+            Machinery updatedMachinery = machineryService.updateMachinery(id, dto);
+            return ResponseEntity.ok(updatedMachinery);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            System.out.println("Error updating machinery: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping("/search")

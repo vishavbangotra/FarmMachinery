@@ -32,5 +32,5 @@ public class MachineryRequestDTO {
 
     // Rotavator-specific
     private Integer bladeCount;
-    private Integer workingDepth;
+    private Double workingDepth;
 }

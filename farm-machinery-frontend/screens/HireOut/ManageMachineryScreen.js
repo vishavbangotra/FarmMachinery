@@ -1,4 +1,3 @@
-// screens/ManageMachineryScreen.js
 import React, { useState, useContext, useEffect, useCallback } from "react";
 import {
   View,
@@ -10,66 +9,57 @@ import {
   Alert,
   Modal,
   Image,
-  ScrollView, // Added for image list in modal
+  ScrollView,
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import SegmentedControl from "@react-native-segmented-control/segmented-control";
 import * as ImagePicker from "expo-image-picker";
-import Icon from "react-native-vector-icons/FontAwesome"; // Keep using FontAwesome
+import Icon from "react-native-vector-icons/FontAwesome";
 import { BottomSheet } from "react-native-btr";
-// Removed unused AuthContext import
-import { COLORS, SIZES, FONTS } from "../../constants/styles"; // Assuming these are correctly defined
+import { COLORS, SIZES, FONTS } from "../../constants/styles";
 import * as SecureStore from "expo-secure-store";
-import { Picker } from '@react-native-picker/picker'; // Import
-const API_BASE_URL = "http://10.0.2.2:8080"; // Or your actual API base URL
+import { Picker } from "@react-native-picker/picker";
 
-/**
- * ManageMachineryScreen component for displaying and managing machinery items.
- * Features include fetching machinery data, editing via modal (including multiple images),
- * and refreshing the list.
- */
+const API_BASE_URL = "http://10.0.2.2:8080";
+
 const ManageMachineryScreen = () => {
   const [machineries, setMachineries] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMachinery, setSelectedMachinery] = useState(null);
   const [tempModalStatus, setTempModalStatus] = useState("");
-  const [tempModalRentPerDay, setTempModalRentPerDay] = useState(""); // Renamed from hourlyRate
-  const [tempModalImageUrls, setTempModalImageUrls] = useState([]); // Changed to array for multiple images
-  // Removed showFarmList state as BottomSheet usage seems minimal here, can be added back if needed
+  const [tempModalRentPerDay, setTempModalRentPerDay] = useState("");
+  const [tempModalImageUrls, setTempModalImageUrls] = useState([]);
+  const [tempModalRemark, setTempModalRemark] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false); // Added state for save button loading indicator
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Fetch machinery data from the server
   const fetchMachineries = useCallback(async () => {
     console.log("Fetching machineries...");
-    setLoading(true); // Ensure loading is true at the start of fetch
+    setLoading(true);
     setRefreshing(true);
     try {
       const authToken = await SecureStore.getItemAsync("jwt");
       if (!authToken) {
-        // Handle missing token scenario (e.g., navigate to login)
         Alert.alert(
           "Authentication Error",
           "No auth token found. Please log in."
         );
         setLoading(false);
         setRefreshing(false);
-        // Optionally, navigate away or set an authenticated flag
         return;
       }
       const response = await fetch(`${API_BASE_URL}/api/machinery`, {
         headers: {
           Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json", // Good practice to add
+          "Content-Type": "application/json",
         },
-        // timeout: 10000, // Timeout might cause issues, handle AbortController if needed
       });
 
       if (!response.ok) {
-        const errorBody = await response.text(); // Get more error details
+        const errorBody = await response.text();
         console.error("Fetch Error:", response.status, errorBody);
         throw new Error(
           `Network response was not ok (Status: ${response.status})`
@@ -77,13 +67,12 @@ const ManageMachineryScreen = () => {
       }
 
       const data = await response.json();
-      // Ensure data is an array, default to empty array if not
       setMachineries(Array.isArray(data) ? data : []);
       console.log("Machineries fetched:", data.length);
     } catch (error) {
       console.error("Failed to fetch machineries:", error);
       Alert.alert("Error", `Failed to fetch machineries: ${error.message}`);
-      setMachineries([]); // Clear data on error
+      setMachineries([]);
     } finally {
       setRefreshing(false);
       setLoading(false);
@@ -94,11 +83,9 @@ const ManageMachineryScreen = () => {
     fetchMachineries();
   }, [fetchMachineries]);
 
-  // Status options for the segmented control - Updated based on new data
-  const statusOptions = ["Available", "Unavailable", "Engaged"]; // Example statuses
-  const statusLabels = ["Available", "Unavailable", "Engaged"]; // Corresponding labels
+  const statusOptions = ["AVAILABLE", "UNAVAILABLE", "ENGAGED"];
+  const statusLabels = ["Available", "Unavailable", "Engaged"];
 
-  // Update a machinery item in the local state
   const updateMachineryLocalState = (id, updates) => {
     setMachineries((prev) =>
       prev.map((machinery) =>
@@ -107,20 +94,21 @@ const ManageMachineryScreen = () => {
     );
   };
 
-  // --- API Call for Updating Machinery ---
   const updateMachineryRequest = async (id, updates) => {
-    setIsSaving(true); // Indicate saving process starts
+    setIsSaving(true);
+    console.log("Updating machinery...");
+    
+    console.log("Updates:", updates);
     try {
       const authToken = await SecureStore.getItemAsync("jwt");
+      console.log(authToken);
       if (!authToken) {
         throw new Error("Authentication token not found.");
       }
-
-      // **IMPORTANT**: Adjust the endpoint and method (PUT/PATCH) as per your API design
       const response = await fetch(
         `${API_BASE_URL}/api/machinery/update/${id}`,
         {
-          method: "PUT", // Or 'PATCH'
+          method: "PUT",
           headers: {
             Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
@@ -137,19 +125,18 @@ const ManageMachineryScreen = () => {
         );
       }
 
-      const updatedData = await response.json(); // Assuming API returns updated item
+      const updatedData = await response.json();
       console.log("Machinery updated successfully on server:", updatedData);
-      return updatedData; // Return updated data from server
+      return updatedData;
     } catch (error) {
       console.error("Failed to update machinery:", error);
       Alert.alert("Error", `Failed to save changes: ${error.message}`);
-      return null; // Indicate failure
+      return null;
     } finally {
-      setIsSaving(false); // Indicate saving process ends
+      setIsSaving(false);
     }
   };
 
-  // --- API Call for Deleting Machinery ---
   const removeMachineryRequest = async (id) => {
     try {
       const authToken = await SecureStore.getItemAsync("jwt");
@@ -173,17 +160,15 @@ const ManageMachineryScreen = () => {
         );
       }
       console.log("Machinery deleted successfully on server:", id);
-      return true; // Indicate success
+      return true;
     } catch (error) {
       console.error("Failed to remove machinery:", error);
       Alert.alert("Error", `Failed to remove machinery: ${error.message}`);
-      return false; // Indicate failure
+      return false;
     }
   };
 
-  // Remove a machinery item with confirmation
   const removeMachinery = async (id, title) => {
-    // Made async
     Alert.alert(
       "Confirm Removal",
       `Are you sure you want to remove "${
@@ -195,15 +180,12 @@ const ManageMachineryScreen = () => {
           text: "Remove",
           style: "destructive",
           onPress: async () => {
-            // Made onPress async
-            const success = await removeMachineryRequest(id); // Wait for API call
+            const success = await removeMachineryRequest(id);
             if (success) {
-              // Update local state only after successful API call
               setMachineries((prev) => prev.filter((m) => m.id !== id));
-              setModalVisible(false); // Close modal if open
+              setModalVisible(false);
               Alert.alert("Success", "Machinery removed successfully.");
             }
-            // Error alert is handled within removeMachineryRequest
           },
         },
       ],
@@ -211,16 +193,15 @@ const ManageMachineryScreen = () => {
     );
   };
 
-  // Open the modal with temporary state based on the selected item
   const openModal = (item) => {
     setSelectedMachinery(item);
-    setTempModalStatus(item.status || statusOptions[0]); // Default if status is missing
-    setTempModalRentPerDay(String(item.rentPerDay || 0)); // Default to 0 if missing
-    setTempModalImageUrls(item.imageUrls || []); // Default to empty array
+    setTempModalStatus(item.status || statusOptions[0]);
+    setTempModalRentPerDay(String(item.rentPerDay || 0));
+    setTempModalImageUrls(item.imageUrls || []);
+    setTempModalRemark(item.remarks || "");
     setModalVisible(true);
   };
 
-  // Handle image picking - Now adds image to the array
   const handlePickImage = async () => {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -234,9 +215,9 @@ const ManageMachineryScreen = () => {
     try {
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true, // Consider if editing is needed for each image
-        aspect: [4, 3], // Or desired aspect ratio
-        quality: 0.8, // Reduce quality slightly for faster uploads
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
       });
 
       if (
@@ -245,9 +226,6 @@ const ManageMachineryScreen = () => {
         pickerResult.assets.length > 0
       ) {
         const newUri = pickerResult.assets[0].uri;
-        // **TODO**: Here you would typically upload the `newUri` to your backend/S3
-        // and get back a persistent URL. For this example, we'll just use the local URI.
-        // In a real app replace `newUri` with the URL returned after upload.
         setTempModalImageUrls((prevUrls) => [...prevUrls, newUri]);
       }
     } catch (error) {
@@ -256,19 +234,14 @@ const ManageMachineryScreen = () => {
     }
   };
 
-  // Remove a specific image from the temporary list by its index
   const handleRemoveSpecificImage = (indexToRemove) => {
-    // **TODO**: If images are uploaded, you might need an API call here
-    // to delete the image from your storage (e.g., S3) before removing from state.
     setTempModalImageUrls((prevUrls) =>
       prevUrls.filter((_, index) => index !== indexToRemove)
     );
   };
 
-  // Save changes - Now includes API call and multi-image handling
   const handleSave = async () => {
-    // Made async
-    if (isSaving) return; // Prevent double-clicks
+    if (isSaving) return;
 
     const rentPerDay = parseFloat(tempModalRentPerDay);
     if (isNaN(rentPerDay) || rentPerDay < 0) {
@@ -280,24 +253,12 @@ const ManageMachineryScreen = () => {
     }
 
     if (selectedMachinery) {
-      // **TODO**: Handle Image Uploads Here
-      // Before calling updateMachineryRequest, you'd iterate through tempModalImageUrls.
-      // Any URLs that are local file URIs (e.g., starting with 'file://') need to be
-      // uploaded to your server/S3. Replace those local URIs in a *new* array
-      // with the permanent URLs returned by your upload process.
-      // This example proceeds assuming URLs are already permanent or just demonstrating UI flow.
-      const finalImageUrls = tempModalImageUrls; // Replace with URLs after upload
-
+      const finalImageUrls = tempModalImageUrls;
       const updates = {
         status: tempModalStatus,
         rentPerDay,
         imageUrls: finalImageUrls,
-        // Include other fields from selectedMachinery if your update endpoint needs them all
-        // type: selectedMachinery.type,
-        // model: selectedMachinery.model,
-        // remarks: selectedMachinery.remarks, // Decide if remarks/model are editable
-        // latitude: selectedMachinery.latitude,
-        // longitude: selectedMachinery.longitude,
+        remarks: tempModalRemark,
       };
 
       const updatedMachineryFromServer = await updateMachineryRequest(
@@ -306,7 +267,6 @@ const ManageMachineryScreen = () => {
       );
 
       if (updatedMachineryFromServer) {
-        // Update local state with data confirmed by the server
         updateMachineryLocalState(
           selectedMachinery.id,
           updatedMachineryFromServer
@@ -314,20 +274,14 @@ const ManageMachineryScreen = () => {
         Alert.alert("Success", "Machinery updated successfully.");
         setModalVisible(false);
       }
-      // Error alerts are handled within updateMachineryRequest
     }
   };
 
-  // Render each machinery item as a card
   const renderTile = useCallback(
     ({ item }) => {
       const displayImage =
         item.imageUrls && item.imageUrls.length > 0 ? item.imageUrls[0] : null;
-      const title =
-        item.remarks ||
-        item.model ||
-        `Type: ${item.type}` ||
-        `Machinery #${item.id}`; // Fallback title logic
+      const title = item.type || `Machinery #${item.id}`;
 
       return (
         <TouchableOpacity
@@ -345,8 +299,7 @@ const ManageMachineryScreen = () => {
             />
           ) : (
             <View style={styles.cardPlaceholder}>
-              <Icon name="truck" size={40} color={COLORS.PRIMARY} />{" "}
-              {/* Changed icon */}
+              <Icon name="truck" size={40} color={COLORS.PRIMARY} />
               <Text style={styles.cardPlaceholderText}>No Image</Text>
             </View>
           )}
@@ -370,11 +323,10 @@ const ManageMachineryScreen = () => {
         </TouchableOpacity>
       );
     },
-    [openModal] // Dependency remains openModal
+    [openModal]
   );
 
   if (loading && machineries.length === 0) {
-    // Show loading indicator only on initial load
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.PRIMARY} />
@@ -394,12 +346,12 @@ const ManageMachineryScreen = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={fetchMachineries}
-            colors={[COLORS.PRIMARY]} // Optional: customize refresh indicator color
+            colors={[COLORS.PRIMARY]}
           />
         }
-        initialNumToRender={10} // Keep for performance
+        initialNumToRender={10}
         ListEmptyComponent={
-          !loading ? ( // Only show "No machinery" if not loading
+          !loading ? (
             <View style={styles.emptyContainer}>
               <Icon
                 name="exclamation-circle"
@@ -414,22 +366,19 @@ const ManageMachineryScreen = () => {
                 <Text style={styles.retryButtonText}>Tap to Retry</Text>
               </TouchableOpacity>
             </View>
-          ) : null // Don't show empty component while loading
+          ) : null
         }
       />
 
-      {/* Modal for Editing Machinery */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <ScrollView contentContainerStyle={styles.modalScrollViewContainer}>
             <View style={styles.modalContent}>
               {selectedMachinery && (
                 <>
-                  {/* Header */}
                   <View style={styles.modalHeaderContainer}>
                     <Text style={styles.modalHeader} numberOfLines={1}>
-                      {selectedMachinery.remarks ||
-                        selectedMachinery.model ||
+                      {selectedMachinery.type ||
                         `Machinery #${selectedMachinery.id}`}
                     </Text>
                     <TouchableOpacity
@@ -442,7 +391,6 @@ const ManageMachineryScreen = () => {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Image Section */}
                   <Text style={styles.modalSectionTitle}>Images</Text>
                   <View style={styles.imageManagementContainer}>
                     <ScrollView
@@ -471,7 +419,6 @@ const ManageMachineryScreen = () => {
                           </TouchableOpacity>
                         </View>
                       ))}
-                      {/* Placeholder/Add Button if needed */}
                       {tempModalImageUrls.length === 0 && (
                         <View
                           style={[
@@ -496,18 +443,16 @@ const ManageMachineryScreen = () => {
                     </ScrollView>
                   </View>
 
-                  {/* Status Section */}
                   <View style={styles.stackedInputContainer}>
                     <Text style={styles.stackedLabel}>Status:</Text>
                     <View style={styles.pickerContainer}>
-                      {/* Add a container for border/styling */}
                       <Picker
                         selectedValue={tempModalStatus}
-                        onValueChange={(itemValue, itemIndex) =>
+                        onValueChange={(itemValue) =>
                           setTempModalStatus(itemValue)
                         }
-                        style={styles.pickerStyle} // Style the picker itself
-                        dropdownIconColor={COLORS.PRIMARY} // Optional: style dropdown arrow
+                        style={styles.pickerStyle}
+                        dropdownIconColor={COLORS.PRIMARY}
                       >
                         {statusOptions.map((status, index) => (
                           <Picker.Item
@@ -520,13 +465,12 @@ const ManageMachineryScreen = () => {
                     </View>
                   </View>
 
-                  {/* Rent Per Day Section */}
                   <View style={styles.modalInputRow}>
                     <Text style={styles.modalLabel}>Rent Per Day ($):</Text>
                     <TextInput
                       style={[
                         styles.input,
-                        tempModalRentPerDay === "" && styles.inputError, // Example error style
+                        tempModalRentPerDay === "" && styles.inputError,
                       ]}
                       keyboardType="numeric"
                       value={tempModalRentPerDay}
@@ -537,7 +481,18 @@ const ManageMachineryScreen = () => {
                     />
                   </View>
 
-                  {/* Display Only Fields (Example) */}
+                  <View style={styles.modalInputRow}>
+                    <Text style={styles.modalLabel}>Remarks:</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={tempModalRemark}
+                      onChangeText={setTempModalRemark}
+                      placeholder="Enter remarks"
+                      placeholderTextColor={COLORS.SECONDARY_LIGHT || "#aaa"}
+                      accessibilityLabel="Remarks input"
+                    />
+                  </View>
+
                   {selectedMachinery.type && (
                     <View style={styles.modalDisplayRow}>
                       <Text style={styles.modalLabel}>Type:</Text>
@@ -554,16 +509,7 @@ const ManageMachineryScreen = () => {
                       </Text>
                     </View>
                   )}
-                  {selectedMachinery.remarks && (
-                    <View style={styles.modalDisplayRow}>
-                      <Text style={styles.modalLabel}>Remarks:</Text>
-                      <Text style={styles.modalValue}>
-                        {selectedMachinery.remarks}
-                      </Text>
-                    </View>
-                  )}
 
-                  {/* Action Buttons */}
                   <View style={styles.modalActions}>
                     <TouchableOpacity
                       style={[
@@ -573,7 +519,8 @@ const ManageMachineryScreen = () => {
                       onPress={() =>
                         removeMachinery(
                           selectedMachinery.id,
-                          selectedMachinery.remarks || selectedMachinery.model // Pass title for confirm dialog
+                          selectedMachinery.type ||
+                            `Machinery #${selectedMachinery.id}`
                         )
                       }
                       disabled={isSaving}
@@ -584,7 +531,7 @@ const ManageMachineryScreen = () => {
                       style={[
                         styles.actionButton,
                         styles.saveButton,
-                        isSaving && styles.buttonDisabled, // Style for disabled state
+                        isSaving && styles.buttonDisabled,
                       ]}
                       onPress={handleSave}
                       disabled={isSaving}
@@ -604,26 +551,14 @@ const ManageMachineryScreen = () => {
           </ScrollView>
         </View>
       </Modal>
-
-      {/* Bottom Sheet - Kept for potential future use, but primary interaction is via FlatList -> Modal */}
-      {/*
-            <BottomSheet
-                visible={showFarmList} // You'd need to re-add state and logic to show this
-                onBackButtonPress={() => setShowFarmList(false)}
-                onBackdropPress={() => setShowFarmList(false)}
-            >
-               // ... BottomSheet content similar to before, using new data fields ...
-            </BottomSheet>
-            */}
     </SafeAreaView>
   );
 };
 
-// --- Styles --- (Updated and Added Styles)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.BACKGROUND || "#f4f6f8", // Lighter background
+    backgroundColor: COLORS.BACKGROUND || "#f4f6f8",
   },
   loadingContainer: {
     flex: 1,
@@ -638,7 +573,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: SIZES.PADDING || 16,
-    paddingBottom: 80, // Ensure space for potential FAB or bottom nav
+    paddingBottom: 80,
   },
   card: {
     backgroundColor: "#fff",
@@ -649,12 +584,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
-    overflow: "hidden", // Keep image within bounds
+    overflow: "hidden",
   },
   cardImage: {
     width: "100%",
-    height: 180, // Slightly taller image
-    backgroundColor: COLORS.INPUT_BG || "#e0e0e0", // BG while loading
+    height: 180,
+    backgroundColor: COLORS.INPUT_BG || "#e0e0e0",
   },
   cardPlaceholder: {
     width: "100%",
@@ -675,7 +610,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: SIZES.SUBTITLE || 18,
     fontWeight: "bold",
-    color: COLORS.TEXT_DARK|| "#333", // Darker title
+    color: COLORS.TEXT_DARK || "#333",
     marginBottom: 6,
   },
   cardDetail: {
@@ -687,28 +622,28 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)", // Darker overlay
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalScrollViewContainer: {
-    flexGrow: 1, // Allows scrolling if content exceeds screen height
-    justifyContent: "center", // Center the modal vertically
+    flexGrow: 1,
+    justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 40, // Add padding for scroll view
+    paddingVertical: 40,
   },
   modalContent: {
-    width: "100%", // Slightly wider modal
-    maxWidth: 600, // Max width for tablets
+    width: "100%",
+    maxWidth: 600,
     backgroundColor: COLORS.WHITE || "#fff",
     borderRadius: SIZES.BORDER_RADIUS_LARGE || 16,
     padding: SIZES.PADDING * 1.2 || 20,
-    elevation: 10, // Higher elevation for modal
+    elevation: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    maxHeight: "90%", // Ensure modal doesn't exceed screen height
+    maxHeight: "90%",
   },
   modalSectionTitle: {
     fontSize: SIZES.BODY || 16,
@@ -733,27 +668,23 @@ const styles = StyleSheet.create({
     fontSize: SIZES.H3 || 20,
     fontFamily: FONTS.BOLD,
     color: COLORS.PRIMARY,
-    flex: 1, // Allow text to take space but wrap
-    marginRight: 10, // Space before close button
+    flex: 1,
+    marginRight: 10,
   },
   closeButton: {
-    padding: 5, // Make touch target slightly larger
-    // Removed background for cleaner look
+    padding: 5,
   },
-  // --- Image Management Styles ---
   imageManagementContainer: {
     marginBottom: 16,
   },
-  modalImageScrollView: {
-    // No specific style needed here unless padding is required inside
-  },
+  modalImageScrollView: {},
   modalImageWrapper: {
-    position: "relative", // Needed for absolute positioning of the remove button
-    marginRight: 10, // Space between images
-    width: 120, // Fixed width for image previews
-    height: 90, // Fixed height (4:3 aspect ratio)
+    position: "relative",
+    marginRight: 10,
+    width: 120,
+    height: 90,
     borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
-    overflow: "hidden", // Keep image and button contained
+    overflow: "hidden",
     backgroundColor: COLORS.INPUT_BG || "#e0e0e0",
   },
   modalImage: {
@@ -764,7 +695,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -2,
     right: -2,
-    backgroundColor: "rgba(255, 255, 255, 0.8)", // Semi-transparent white background
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
     borderRadius: 15,
     padding: 2,
   },
@@ -774,7 +705,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   addImageButton: {
-    width: 90, // Smaller add button
+    width: 90,
     height: 90,
     borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
     borderWidth: 1,
@@ -782,7 +713,7 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 5, // Space after last image or placeholder
+    marginLeft: 5,
   },
   addImageButtonText: {
     fontSize: SIZES.CAPTION || 12,
@@ -790,17 +721,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontFamily: FONTS.MEDIUM,
   },
-  // --- Input Styles ---
   modalInputRow: {
-    // Changed from 'row' to avoid conflict, more descriptive
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 16,
   },
   modalDisplayRow: {
-    // For non-editable fields
     flexDirection: "row",
-    alignItems: "center", // Align items at the start for potentially long values
+    alignItems: "center",
     marginBottom: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
@@ -811,17 +739,17 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.MEDIUM,
     color: COLORS.PRIMARY || "#555",
     marginRight: 10,
-    width: 110, // Fixed width for labels
+    width: 110,
   },
   modalValue: {
     fontSize: SIZES.BODY || 14,
     fontFamily: FONTS.REGULAR,
     color: COLORS.TERTIARY || "#333",
-    flex: 1, // Allow value to wrap
+    flex: 1,
   },
   segmentedControl: {
     flex: 1,
-    height: 36, // Slightly shorter control
+    height: 36,
   },
   input: {
     flex: 1,
@@ -838,11 +766,10 @@ const styles = StyleSheet.create({
   inputError: {
     borderColor: COLORS.ERROR || "red",
   },
-  // --- Action Button Styles ---
   modalActions: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 24, // More space before actions
+    marginTop: 24,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.BORDER || "#eee",
@@ -853,7 +780,7 @@ const styles = StyleSheet.create({
     borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
     alignItems: "center",
     justifyContent: "center",
-    flexDirection: "row", // Allow icon + text if needed
+    flexDirection: "row",
   },
   actionButtonText: {
     color: COLORS.WHITE || "#fff",
@@ -862,23 +789,21 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   removeMachineryButton: {
-    // Specific style for the main remove button
     backgroundColor: COLORS.ERROR || "darkred",
-    flex: 0.48, // Take slightly less space than save
+    flex: 0.48,
   },
   saveButton: {
     backgroundColor: COLORS.PRIMARY,
-    flex: 0.48, // Take slightly less space
+    flex: 0.48,
   },
   buttonDisabled: {
     backgroundColor: COLORS.SECONDARY_LIGHT || "#aaa",
   },
-  // --- Empty List Styles ---
   emptyContainer: {
-    flex: 1, // Ensure it takes space if list is empty
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 50, // Add margin from top
+    marginTop: 50,
     padding: 20,
   },
   emptyText: {
@@ -900,86 +825,24 @@ const styles = StyleSheet.create({
     fontSize: SIZES.BODY || 14,
     fontFamily: FONTS.MEDIUM,
   },
-
-  // --- Bottom Sheet Styles (Kept for reference) ---
-  bottomSheet: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: "60%", // Limit height
-  },
-  bottomSheetTitle: {
-    fontSize: 20,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.PRIMARY,
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  searchInput: {
-    height: 44, // Consistent height
-    borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
-    backgroundColor: COLORS.INPUT_BG || "#f8f8f8",
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    fontSize: SIZES.BODY || 14,
-  },
-  bottomSheetItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 8, // Less horizontal padding
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.BORDER_LIGHT || "#f0f0f0",
-  },
-  bottomSheetItemText: {
-    fontSize: 16,
-    color: COLORS.SECONDARY_DARK || "#555",
-    marginLeft: 12, // Add margin from icon
-    fontFamily: FONTS.REGULAR,
-  },
   stackedInputContainer: {
-    marginBottom: 20, // Increased spacing
+    marginBottom: 20,
   },
   stackedLabel: {
     fontSize: SIZES.BODY || 14,
     fontFamily: FONTS.MEDIUM,
     color: COLORS.SECONDARY_DARK || "#555",
-    marginBottom: 8, // Space between label and input/value
+    marginBottom: 8,
   },
   pickerContainer: {
-    // Style the container around the picker
     borderWidth: 1,
     borderColor: COLORS.BORDER || "#ccc",
     borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
     backgroundColor: COLORS.INPUT_BG || "#f8f8f8",
-    height: 48, // Adjust height if needed
-    justifyContent: "center", // Center picker item vertically
+    height: 48,
+    justifyContent: "center",
   },
-  pickerStyle: {
-    // height: '100%', // May not work consistently across platforms
-    // width: '100%', // May not work consistently across platforms
-    // Apply color etc. directly if needed, but container handles bg/border
-  },
-  input: {
-    // Adjusted for stacked layout (no flex:1 needed)
-    height: 44,
-    borderColor: COLORS.BORDER || "#ccc",
-    borderWidth: 1,
-    borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
-    paddingHorizontal: 12,
-    backgroundColor: COLORS.INPUT_BG || "#f8f8f8",
-    fontFamily: FONTS.REGULAR,
-    fontSize: SIZES.BODY || 14,
-    color: COLORS.TERTIARY || "#333",
-  },
-  modalValue: {
-    // Adjusted for stacked layout
-    fontSize: SIZES.BODY || 14,
-    fontFamily: FONTS.REGULAR,
-    color: COLORS.TERTIARY || "#333",
-    paddingVertical: 10, // Add padding if needed
-  },
+  pickerStyle: {},
 });
 
 export default ManageMachineryScreen;
