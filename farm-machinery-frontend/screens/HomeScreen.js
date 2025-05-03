@@ -40,7 +40,7 @@ const HomeScreen = () => {
           visible={menuVisible}
           anchor={
             <TouchableOpacity onPress={toggleMenu} style={styles.iconButton}>
-              <Ionicons name="person-circle-outline" size={28} color="#fff" />
+              <Ionicons name="person-circle-outline" size={28} color={COLORS.TEXT_DARK} />
             </TouchableOpacity>
           }
           onRequestClose={closeMenu}
@@ -89,18 +89,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#fff",
+    color: COLORS.TEXT_DARK,
   },
   iconButton: {
     padding: 4,
+    color: COLORS.TEXT_DARK,
   },
   menuHeader: {
     padding: 8,
     borderBottomWidth: 1,
-    borderColor: "#eee",
+    borderColor: COLORS.TEXT_DARK,
   },
   menuText: {
     fontSize: 16,
+    color: COLORS.TEXT_DARK,
     fontWeight: "500",
   },
   content: {
@@ -112,7 +114,7 @@ const styles = StyleSheet.create({
   welcome: {
     fontSize: 24,
     fontWeight: "700",
-    color: COLORS.TEXT_LIGHT,
+    color: COLORS.TEXT_DARK,
     marginBottom: 32,
   },
   button: {

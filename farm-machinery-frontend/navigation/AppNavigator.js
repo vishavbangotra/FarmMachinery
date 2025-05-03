@@ -32,7 +32,7 @@ const AppNavigator = () => {
         options={{
           title: "Select Machinery",
           headerStyle: { backgroundColor: COLORS.BACKGROUND },
-          headerTintColor: COLORS.TEXT_LIGHT,
+          headerTintColor: COLORS.TEXT_DARK,
         }}
       />
       <Stack.Screen
@@ -46,7 +46,7 @@ const AppNavigator = () => {
         options={({ navigation }) => ({
           title: "Search Machinery",
           headerStyle: { backgroundColor: COLORS.BACKGROUND },
-          headerTintColor: COLORS.TEXT_LIGHT
+          headerTintColor: COLORS.TEXT_DARK
         })}
       />
       <Stack.Screen
@@ -55,7 +55,7 @@ const AppNavigator = () => {
         options={{
           title: "Select Farm",
           headerStyle: { backgroundColor: COLORS.BACKGROUND },
-          headerTintColor: COLORS.TEXT_LIGHT,
+          headerTintColor: COLORS.TEXT_DARK,
         }}
       />
       <Stack.Screen
@@ -64,7 +64,7 @@ const AppNavigator = () => {
         options={{
           title: "Hire Out",
           headerStyle: { backgroundColor: COLORS.BACKGROUND },
-          headerTintColor: COLORS.TEXT_LIGHT,
+          headerTintColor: COLORS.TEXT_DARK,
         }}
       />
       <Stack.Screen
@@ -73,7 +73,7 @@ const AppNavigator = () => {
         options={{
           title: "Add Machinery",
           headerStyle: { backgroundColor: COLORS.BACKGROUND },
-          headerTintColor: COLORS.TEXT_LIGHT,
+          headerTintColor: COLORS.TEXT_DARK,
         }}
       />
       <Stack.Screen
@@ -82,7 +82,7 @@ const AppNavigator = () => {
         options={{
           title: "Your Machinery",
           headerStyle: { backgroundColor: COLORS.BACKGROUND },
-          headerTintColor: COLORS.TEXT_LIGHT,
+          headerTintColor: COLORS.TEXT_DARK,
         }}
       />
       <Stack.Screen name="BookingList" component={BookingListScreen} />

@@ -3,79 +3,83 @@ import { Platform } from "react-native";
 // constants.js
 export const COLORS = {
   /**
-   * rgb(20, 61, 96)
-   * A very dark gray that serves as the foundation of the dark mode interface.
-   * It's not pure black, providing a softer contrast that's easier on the eyes
-   * while evoking the depth of night-time fields or rich soil.
+   * #f0ffe2
+   * A very light, pastel green that serves as the foundation of the light theme interface.
+   * This soft hue provides a gentle contrast that’s easy on the eyes,
+   * evoking fresh fields at dawn or new plant shoots.
    */
-  BACKGROUND: "rgb(12, 39, 61)",
+  BACKGROUND: "#f0ffe2",
   /**
-   * Primary: #2E7D32
-   * A muted, dark green representing crops and plant life, central to agriculture.
-   * This color is ideal for primary buttons, headers, or interactive elements,
-   * offering a natural and earthy feel that stands out against the dark background.
+   * Primary: #59981A
+   * A rich, dark green representing healthy crops and lush foliage.
+   * Ideal for primary buttons, headers, or interactive elements,
+   * offering a natural, earthy feel against lighter backgrounds.
    */
-  PRIMARY: "#A0C878",
+  PRIMARY: "#59981A",
   /**
-   * Secondary: #795548
-   * A warm brown inspired by fertile soil or wooden farm elements.
-   * This color complements the primary green and can be used for secondary
-   * buttons, borders, or less prominent UI elements.
+   * Secondary: #81B622
+   * A vibrant medium green inspired by fresh leaves and growth.
+   * Complements the primary tone and suits secondary buttons, borders,
+   * or less prominent UI elements with an organic touch.
    */
-  SECONDARY: "#DDEB9D",
+  SECONDARY: "#81B622",
   /**
-   * Accent: #FFA726
-   * A vibrant orange-yellow reminiscent of ripe harvests, sunlight, or
-   * attention-grabbing farm alerts.
-   * It's perfect for highlights, call-to-action buttons, or notifications, adding
-   * a pop of color that draws the eye without overwhelming the dark theme.
+   * Accent: #ECF87F
+   * A bright yellow-green reminiscent of early spring buds or
+   * sunlit fields. Perfect for highlights, call-to-action buttons,
+   * or notifications, adding a fresh pop of color without overwhelming.
    */
-  ACCENT: "rgb(235, 91, 0)",
+  ACCENT: "#ECF87F",
   /**
-   * Text Primary: #FFFFFF
-   * Pure white for the main text, ensuring maximum readability and contrast
-   * against the dark background.
-   * Use this for headings, labels, and primary content.
+   * Tertiary/Text Primary: #3D550C
+   * A deep olive green used for main text, ensuring strong readability
+   * and subtle warmth against the light background.
    */
-  TEXT_LIGHT: "#FFFFFF",
+  TERTIARY: "#3D550C",
   /**
-   * Text Secondary: #B0BEC5
-   * A light gray-blue for secondary text, such as descriptions, captions, or
-   * disabled states.
-   * It maintains legibility while distinguishing less critical information from
-   * primary text.
+   * Text Light (Disabled/Placeholder): #B0BEC5
+   * A cool gray-blue for disabled states, placeholders, or secondary text,
+   * ensuring sufficient contrast without competing with primary content.
    */
-  TEXT_DARK: "rgb(20, 61, 96)",
+
+  TEXT_LIGHT: "#B0BEC5",
+  /**
+   * Text Dark: #37520B
+   * A dark moss green for labels or captions, slightly lighter than tertiary,
+   * maintaining contrast while distinguishing less critical text.
+   */
+  TEXT_DARK: "#37520B",
 };
 
 export const SIZES = {
-  TITLE: 32, // Font size for title
-  BUTTON_TEXT: 18, // Font size for button text
-  INFO_TEXT: 16, // Font size for info/resend text
-  INPUT_HEIGHT: 50, // Height for inputs and boxes
-  COUNTRY_CODE_WIDTH: 60, // Width for country code input
-  BORDER_RADIUS: 8, // Consistent border radius
-  PADDING: 20, // Container padding
-  PADDING_SM: 10,
-  SPACING: 5, // Spacing between digit boxes
-  MARGIN_SMALL: 2, // Small margin for digit boxes
-  MARGIN_MEDIUM: 10, // Medium margin for resend link
-  MARGIN_LARGE: 20, // Large margin for sections
+  TITLE: 32, // Font size for titles or main headings
+  BUTTON_TEXT: 18, // Font size for button labels
+  INFO_TEXT: 16, // Font size for informational text or captions
+  INPUT_HEIGHT: 50, // Height for text inputs and interactive boxes
+  COUNTRY_CODE_WIDTH: 60, // Width allocated for country code inputs
+  BORDER_RADIUS: 8, // Standard border radius for rounded elements
+  PADDING: 20, // Default container padding
+  PADDING_SM: 10, // Small padding
+  SPACING: 5, // Space between elements, e.g., digit boxes
+  MARGIN_SMALL: 2, // Small margin, often for tight layouts
+  MARGIN_MEDIUM: 10, // Medium margin for spacing sections
+  MARGIN_LARGE: 20, // Large margin for major section separation
 };
 
 // Define fonts in constants/styles.js
 export const FONTS = {
   REGULAR: Platform.OS === "ios" ? "Helvetica Neue" : "Roboto",
   MEDIUM: Platform.OS === "ios" ? "HelveticaNeue-Medium" : "Roboto-Medium",
+  BOLD: Platform.OS === "ios" ? "HelveticaNeue-Bold" : "Roboto-Bold",
 };
 
 export const GLOBAL_STYLES = {
   button: {
     backgroundColor: COLORS.PRIMARY,
     padding: 14,
-    borderRadius: 8,
+    borderRadius: SIZES.BORDER_RADIUS,
     alignItems: "center",
-    marginTop: 16,
+    marginTop: SIZES.MARGIN_MEDIUM,
   },
   header: {
     fontSize: SIZES.TITLE,
@@ -87,7 +91,7 @@ export const GLOBAL_STYLES = {
   tile: {
     backgroundColor: COLORS.SECONDARY,
     borderWidth: 1,
-    borderColor: COLORS.BORDER,
+    borderColor: COLORS.ACCENT,
     borderRadius: SIZES.BORDER_RADIUS,
     padding: SIZES.MARGIN_MEDIUM,
     marginBottom: SIZES.MARGIN_MEDIUM,
@@ -99,12 +103,12 @@ export const GLOBAL_STYLES = {
   },
   selectedTile: {
     borderColor: COLORS.PRIMARY,
-    backgroundColor: `${COLORS.TERTIARY}20`,
+    backgroundColor: `${COLORS.TERTIARY}20`, // 12% opacity
   },
   tileTitle: {
     fontSize: SIZES.BUTTON_TEXT,
     fontFamily: FONTS.BOLD,
-    color: COLORS.TEXT,
+    color: COLORS.TERTIARY,
     marginBottom: SIZES.MARGIN_SMALL,
   },
   selectedTileTitle: {
@@ -113,14 +117,10 @@ export const GLOBAL_STYLES = {
   tileDescription: {
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.REGULAR,
-    color: COLORS.PRIMARY,
     fontWeight: "bold",
-  },
-  selectedTileDescription: {
     color: COLORS.TERTIARY,
   },
+  selectedTileDescription: {
+    color: COLORS.PRIMARY,
+  },
 };
-
-
-
-  

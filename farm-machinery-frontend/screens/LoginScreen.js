@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontFamily: CONSTANTS.FONTS.BOLD,
-    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    color: CONSTANTS.COLORS.TEXT_DARK,
     marginBottom: 8,
   },
   subtitle: {
@@ -275,25 +275,25 @@ const styles = StyleSheet.create({
     backgroundColor: CONSTANTS.COLORS.SECONDARY,
     textAlign: "center",
     fontSize: 18,
-    color: CONSTANTS.COLORS.TEXT_DARK,
+    color: CONSTANTS.COLORS.TEXT_DARK
   },
   otpTitle: {
     fontSize: 20,
     fontFamily: CONSTANTS.FONTS.BOLD,
-    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    color: CONSTANTS.COLORS.TEXT_DARK,
     marginBottom: 8,
   },
   otpSubtitle: {
     fontSize: 14,
     fontFamily: CONSTANTS.FONTS.REGULAR,
-    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    color: CONSTANTS.COLORS.TEXT_DARK,
     marginBottom: 32,
   },
   resendContainer: {
     marginTop: 16,
   },
   resendText: {
-    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    color: CONSTANTS.COLORS.TEXT_DARK,
     fontFamily: CONSTANTS.FONTS.REGULAR,
   },
   resendLink: {
