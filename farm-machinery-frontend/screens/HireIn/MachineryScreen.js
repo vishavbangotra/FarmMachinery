@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     marginLeft: SIZES.SPACING,
     fontSize: SIZES.INFO_TEXT,
     fontFamily: FONTS.REGULAR,
-    color: COLORS.TEXT_DARK,
+    color: COLORS.TEXT_LIGHT,
   },
   errorText: {
     color: COLORS.ACCENT,
@@ -217,13 +217,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: SIZES.MARGIN_MEDIUM,
   },
-  iconSelected: {
-    backgroundColor: COLORS.ACCENT,
-  },
   cardText: {
     flex: 1,
-    fontSize: SIZES.INFO_TEXT,
-    fontFamily: FONTS.MEDIUM,
+    fontSize: 18,
+    fontFamily: FONTS.BOLD,
     color: COLORS.TEXT_DARK,
   },
   textSelected: {

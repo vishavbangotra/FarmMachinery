@@ -6,7 +6,7 @@ import {
   Modal,
   Text,
   TouchableOpacity,
-  ScrollView,
+  FlatList,
   ActivityIndicator,
   Animated,
 } from "react-native";
@@ -18,10 +18,12 @@ import { BottomSheet } from "react-native-btr";
 import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
+import axios from "axios";
 
 import { COLORS, SIZES, FONTS } from "../../constants/styles";
 
 const API_BASE_URL = "http://10.0.2.2:8080";
+const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
 const FarmSelectScreen = ({ route, navigation }) => {
   const [farms, setFarms] = useState([]);
@@ -37,6 +39,7 @@ const FarmSelectScreen = ({ route, navigation }) => {
   const [distance, setDistance] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [farmToDelete, setFarmToDelete] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
   const mapRef = useRef(null);
   const fabScale = useRef(new Animated.Value(1)).current;
 
@@ -54,7 +57,7 @@ const FarmSelectScreen = ({ route, navigation }) => {
   }, [farms, selectedFarm]);
 
   const fetchFarms = async () => {
-    const response = await fetch(`http://10.0.2.2:8080/api/farms/user/1`);
+    const response = await fetch(`${API_BASE_URL}/api/farms/user/1`);
     const data = await response.json();
     setFarms(data);
   };
@@ -164,26 +167,6 @@ const FarmSelectScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleSearch = async () => {
-    if (searchQuery) {
-      try {
-        const results = await Location.geocodeAsync(searchQuery);
-        if (results.length > 0) {
-          const { latitude, longitude } = results[0];
-          const newRegion = {
-            latitude,
-            longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          };
-          setRegion(newRegion);
-          mapRef.current?.animateToRegion(newRegion, 1000);
-        }
-      } catch (error) {
-        console.log("Geocode error:", error);
-      }
-    }
-  };
   const deleteFarmRequest = async () => {
     try {
       const authToken = await SecureStore.getItemAsync("jwt");
@@ -251,63 +234,90 @@ const FarmSelectScreen = ({ route, navigation }) => {
 
   const handleAddMachinery = async () => {
     setIsSaving(true);
-
     try {
-      // 1. fetch your JWT
       const authToken = await SecureStore.getItemAsync("jwt");
       if (!authToken) throw new Error("No authentication token found");
-
-      // 2. pull out all your scalar fields
       const type = route.params.machineryTitle.toUpperCase();
       const farmId = selectedFarm.id;
       const details = route.params.machineryDetails;
-      // images should be an array of URIs
       const imageUris = route.params.images || [];
-
-      // 3. build the multipart form
       const formData = new FormData();
       formData.append("type", type);
       formData.append("farmId", String(farmId));
-      // append every field from your details object
       Object.entries(details).forEach(([key, value]) => {
-        // make sure it’s a string
         formData.append(key, value == null ? "" : String(value));
       });
-
-      // 4. append each local-file URI as a “files” part
       imageUris.forEach((uri, idx) => {
         const filename = uri.split("/").pop();
         const match = /\.(\w+)$/.exec(filename ?? "");
         const mimeType = match ? `image/${match[1]}` : "image";
-
         formData.append("files", {
           uri,
           name: filename,
           type: mimeType,
         });
       });
-
-      // 5. fire it off — **do not** set Content-Type, RN will add the right boundary
-      console.log(formData)
-      const res = await fetch(`http://10.0.2.2:8080/api/machinery/add`, {
+      const res = await fetch(`${API_BASE_URL}/api/machinery/add`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
         body: formData,
       });
-
       if (!res.ok) {
         const errText = await res.text();
         throw new Error(`Error adding machinery: ${res.status} – ${errText}`);
       }
-
-      // 6. on success, go back / refresh your list
       navigation.navigate("ManageMachinery");
     } catch (e) {
       console.error("Error adding machinery:", e);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const fetchLocationSuggestions = async (query) => {
+    console.log(GOOGLE_PLACES_API_KEY)
+    if (query.length > 0) {
+      try {
+        const response = await axios.get(
+          `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${query}&key=${GOOGLE_PLACES_API_KEY}`
+        );
+        if (response.data.predictions) {
+          setSuggestions(response.data.predictions);
+        }
+        console.log(response.data);
+      } catch (error) {
+        console.error("Error fetching location suggestions:", error);
+      }
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleSearchQueryChange = (query) => {
+    setSearchQuery(query);
+    fetchLocationSuggestions(query);
+  };
+
+  const handleSelectSuggestion = async (placeId) => {
+    try {
+      const response = await axios.get(
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${GOOGLE_PLACES_API_KEY}`
+      );
+      const { lat, lng } = response.data.result.geometry.location;
+      const newRegion = {
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setRegion(newRegion);
+      mapRef.current?.animateToRegion(newRegion, 1000);
+      setSuggestions([]);
+      setSearchQuery(response.data.result.name);
+    } catch (error) {
+      console.error("Error selecting location:", error);
     }
   };
 
@@ -358,13 +368,29 @@ const FarmSelectScreen = ({ route, navigation }) => {
         />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search location..."
-          placeholderTextColor="#8E8E93"
+          placeholder="Search locations..."
+          placeholderTextColor={COLORS.TEXT_DARK}
           value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={handleSearch}
+          onChangeText={handleSearchQueryChange}
         />
       </View>
+
+      {suggestions.length > 0 && (
+        <View style={styles.suggestionsContainer}>
+          <FlatList
+            data={suggestions}
+            keyExtractor={(item) => item.place_id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.suggestionItem}
+                onPress={() => handleSelectSuggestion(item.place_id)}
+              >
+                <Text style={styles.suggestionText}>{item.description}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
 
       {selectedFarm && (
         <View style={styles.topControlsContainer}>
@@ -375,7 +401,9 @@ const FarmSelectScreen = ({ route, navigation }) => {
               color={COLORS.PRIMARY}
               style={styles.checkIcon}
             />
-            <Text style={styles.selectedFarmText}>{selectedFarm.name}</Text>
+            <Text style={styles.selectedFarmText}>
+              {selectedFarm.description}
+            </Text>
           </View>
           <Text style={styles.distanceHeader}>Search Radius</Text>
           <Text style={styles.distanceText}>{distance} km</Text>
@@ -440,33 +468,31 @@ const FarmSelectScreen = ({ route, navigation }) => {
       >
         <View style={styles.bottomSheet}>
           <Text style={styles.bottomSheetTitle}>Select a Farm</Text>
-          <ScrollView>
-            {farms.map((farm) => (
-              <View
-                key={farm.id}
-                style={[
-                  styles.farmItem,
-                  {
-                    backgroundColor:
-                      selectedFarm?.id === farm.id ? COLORS.PRIMARY : "#fff",
-                  },
-                ]}
+          {farms.map((farm) => (
+            <View
+              key={farm.id}
+              style={[
+                styles.farmItem,
+                {
+                  backgroundColor:
+                    selectedFarm?.id === farm.id ? COLORS.PRIMARY : "#fff",
+                },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.farmNameContainer}
+                onPress={() => handleSelectFarm(farm)}
               >
-                <TouchableOpacity
-                  style={styles.farmNameContainer}
-                  onPress={() => handleSelectFarm(farm)}
-                >
-                  <Text style={styles.farmName}>{farm.description}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeleteFarm(farm.id)}
-                  style={styles.deleteButton}
-                >
-                  <Icon name="trash" size={20} color={COLORS.ACCENT} />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
+                <Text style={styles.farmName}>{farm.description}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleDeleteFarm(farm.id)}
+                style={styles.deleteButton}
+              >
+                <Icon name="trash" size={20} color={COLORS.ACCENT} />
+              </TouchableOpacity>
+            </View>
+          ))}
         </View>
       </BottomSheet>
 
@@ -554,7 +580,7 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.SECONDARY,
+    backgroundColor: '#fff',
     borderRadius: 25,
     padding: 10,
     elevation: 3,
@@ -565,6 +591,27 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginHorizontal: 10 },
   searchInput: { flex: 1, height: 40, fontSize: 16, color: COLORS.TEXT },
+  suggestionsContainer: {
+    position: "absolute",
+    top: 80,
+    left: 20,
+    right: 20,
+    backgroundColor: COLORS.BACKGROUND,
+    borderRadius: 10,
+    elevation: 5,
+    maxHeight: 200,
+    zIndex: 1000,
+  },
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.PRIMARY,
+  },
+  suggestionText: {
+    fontSize: 16,
+    color: COLORS.TEXT,
+    fontFamily: FONTS.REGULAR,
+  },
   topControlsContainer: {
     position: "absolute",
     top: 100,
@@ -622,7 +669,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 5,
     elevation: 1,
-    color: COLORS.TEXT_DARK,
   },
   farmNameContainer: { flex: 1 },
   farmName: { fontSize: 16, color: COLORS.TEXT_DARK },
@@ -653,15 +699,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: "center",
   },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  modalButton: {
-    flex: 1,
-    marginHorizontal: 5,
-    borderRadius: 10,
-  },
+  modalButtons: { flexDirection: "row", justifyContent: "space-between" },
+  modalButton: { flex: 1, marginHorizontal: 5, borderRadius: 10 },
   label: { fontSize: 16, color: COLORS.TEXT, marginBottom: 5 },
   input: {
     height: 50,

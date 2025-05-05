@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Menu, MenuItem } from "react-native-material-menu";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5, Entypo } from "@expo/vector-icons";
 import AuthContext from "../context/AuthContext";
 import { useNavigation } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
@@ -21,11 +21,11 @@ const HomeScreen = () => {
 
   const toggleMenu = () => setMenuVisible((prev) => !prev);
   const closeMenu = () => setMenuVisible(false);
-  
+
   const logout = () => {
     setIsAuthenticated(false);
     SecureStore.deleteItemAsync("jwt");
-  }
+  };
   const handleLogout = () => {
     closeMenu();
     logout();
@@ -40,7 +40,11 @@ const HomeScreen = () => {
           visible={menuVisible}
           anchor={
             <TouchableOpacity onPress={toggleMenu} style={styles.iconButton}>
-              <Ionicons name="person-circle-outline" size={28} color={COLORS.TEXT_DARK} />
+              <Ionicons
+                name="person-circle-outline"
+                size={28}
+                color={COLORS.TEXT_DARK}
+              />
             </TouchableOpacity>
           }
           onRequestClose={closeMenu}
@@ -55,16 +59,22 @@ const HomeScreen = () => {
       <View style={styles.content}>
         <Text style={styles.welcome}>Welcome back!</Text>
         <TouchableOpacity
-          style={[styles.button, styles.hireInButton]}
+          style={styles.button}
           onPress={() => navigation.navigate("Machinery")}
         >
+          <FontAwesome5 name="tractor" size={40} color="#fff" />
           <Text style={styles.buttonText}>Hire In</Text>
+          <Text style={styles.buttonSubText}>Rent machinery from others</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.button, styles.hireOutButton]}
+          style={styles.button}
           onPress={() => navigation.navigate("HireOut")}
         >
+          <Entypo name="address" size={40} color="#fff" />
           <Text style={styles.buttonText}>Hire Out</Text>
+          <Text style={styles.buttonSubText}>
+            Offer your machinery for rent
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -112,32 +122,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   welcome: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "700",
     color: COLORS.TEXT_DARK,
-    marginBottom: 32,
+    marginBottom: 40,
   },
   button: {
     width: "100%",
-    paddingVertical: 16,
-    borderRadius: 8,
+    paddingVertical: 24,
+    borderRadius: 16,
     alignItems: "center",
-    marginVertical: 8,
+    marginVertical: 12,
+    backgroundColor: COLORS.PRIMARY,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  hireInButton: {
-    backgroundColor: COLORS.PRIMARY,
-  },
-  hireOutButton: {
-    backgroundColor: COLORS.PRIMARY,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
   },
   buttonText: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "600",
     color: "#fff",
+    marginTop: 12,
+  },
+  buttonSubText: {
+    fontSize: 14,
+    color: "#fff",
+    marginTop: 4,
   },
 });

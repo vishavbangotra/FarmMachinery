@@ -42,7 +42,7 @@ export const COLORS = {
    * ensuring sufficient contrast without competing with primary content.
    */
 
-  TEXT_LIGHT: "#B0BEC5",
+  TEXT_LIGHT: "#fff",
   /**
    * Text Dark: #37520B
    * A dark moss green for labels or captions, slightly lighter than tertiary,
@@ -71,6 +71,7 @@ export const FONTS = {
   REGULAR: Platform.OS === "ios" ? "Helvetica Neue" : "Roboto",
   MEDIUM: Platform.OS === "ios" ? "HelveticaNeue-Medium" : "Roboto-Medium",
   BOLD: Platform.OS === "ios" ? "HelveticaNeue-Bold" : "Roboto-Bold",
+  CONDENSED: Platform.OS === "ios" ? "HelveticaNeue-CondensedBlack" : "Roboto-Condensed",
 };
 
 export const GLOBAL_STYLES = {

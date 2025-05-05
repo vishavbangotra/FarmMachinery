@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   Modal,
   Image,
   ScrollView,
@@ -14,10 +13,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import SegmentedControl from "@react-native-segmented-control/segmented-control";
 import * as ImagePicker from "expo-image-picker";
 import Icon from "react-native-vector-icons/FontAwesome";
-import { BottomSheet } from "react-native-btr";
 import { COLORS, SIZES, FONTS } from "../../constants/styles";
 import * as SecureStore from "expo-secure-store";
 import { Picker } from "@react-native-picker/picker";
@@ -35,6 +32,14 @@ const ManageMachineryScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmRemoveModalVisible, setConfirmRemoveModalVisible] =
+    useState(false);
+  const [machineryToRemove, setMachineryToRemove] = useState(null);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [validationError, setValidationError] = useState("");
 
   const fetchMachineries = useCallback(async () => {
     console.log("Fetching machineries...");
@@ -43,10 +48,8 @@ const ManageMachineryScreen = () => {
     try {
       const authToken = await SecureStore.getItemAsync("jwt");
       if (!authToken) {
-        Alert.alert(
-          "Authentication Error",
-          "No auth token found. Please log in."
-        );
+        setErrorMessage("No auth token found. Please log in.");
+        setErrorModalVisible(true);
         setLoading(false);
         setRefreshing(false);
         return;
@@ -71,7 +74,8 @@ const ManageMachineryScreen = () => {
       console.log("Machineries fetched:", data.length);
     } catch (error) {
       console.error("Failed to fetch machineries:", error);
-      Alert.alert("Error", `Failed to fetch machineries: ${error.message}`);
+      setErrorMessage(`Failed to fetch machineries: ${error.message}`);
+      setErrorModalVisible(true);
       setMachineries([]);
     } finally {
       setRefreshing(false);
@@ -97,11 +101,9 @@ const ManageMachineryScreen = () => {
   const updateMachineryRequest = async (id, updates) => {
     setIsSaving(true);
     console.log("Updating machinery...");
-    
     console.log("Updates:", updates);
     try {
       const authToken = await SecureStore.getItemAsync("jwt");
-      console.log(authToken);
       if (!authToken) {
         throw new Error("Authentication token not found.");
       }
@@ -130,7 +132,8 @@ const ManageMachineryScreen = () => {
       return updatedData;
     } catch (error) {
       console.error("Failed to update machinery:", error);
-      Alert.alert("Error", `Failed to save changes: ${error.message}`);
+      setErrorMessage(`Failed to save changes: ${error.message}`);
+      setErrorModalVisible(true);
       return null;
     } finally {
       setIsSaving(false);
@@ -163,34 +166,15 @@ const ManageMachineryScreen = () => {
       return true;
     } catch (error) {
       console.error("Failed to remove machinery:", error);
-      Alert.alert("Error", `Failed to remove machinery: ${error.message}`);
+      setErrorMessage(`Failed to remove machinery: ${error.message}`);
+      setErrorModalVisible(true);
       return false;
     }
   };
 
-  const removeMachinery = async (id, title) => {
-    Alert.alert(
-      "Confirm Removal",
-      `Are you sure you want to remove "${
-        title || "this machinery"
-      }"? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            const success = await removeMachineryRequest(id);
-            if (success) {
-              setMachineries((prev) => prev.filter((m) => m.id !== id));
-              setModalVisible(false);
-              Alert.alert("Success", "Machinery removed successfully.");
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+  const removeMachinery = (item) => {
+    setMachineryToRemove(item);
+    setConfirmRemoveModalVisible(true);
   };
 
   const openModal = (item) => {
@@ -200,16 +184,15 @@ const ManageMachineryScreen = () => {
     setTempModalImageUrls(item.imageUrls || []);
     setTempModalRemark(item.remarks || "");
     setModalVisible(true);
+    setValidationError("");
   };
 
   const handlePickImage = async () => {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert(
-        "Permission Required",
-        "Permission to access camera roll is required!"
-      );
+      setErrorMessage("Permission to access camera roll is required!");
+      setErrorModalVisible(true);
       return;
     }
     try {
@@ -230,7 +213,8 @@ const ManageMachineryScreen = () => {
       }
     } catch (error) {
       console.error("Image Picker Error:", error);
-      Alert.alert("Error", "Could not pick image.");
+      setErrorMessage("Could not pick image.");
+      setErrorModalVisible(true);
     }
   };
 
@@ -245,12 +229,10 @@ const ManageMachineryScreen = () => {
 
     const rentPerDay = parseFloat(tempModalRentPerDay);
     if (isNaN(rentPerDay) || rentPerDay < 0) {
-      Alert.alert(
-        "Invalid Input",
-        "Rent per day must be a non-negative number."
-      );
+      setValidationError("Rent per day must be a non-negative number.");
       return;
     }
+    setValidationError("");
 
     if (selectedMachinery) {
       const finalImageUrls = tempModalImageUrls;
@@ -271,7 +253,8 @@ const ManageMachineryScreen = () => {
           selectedMachinery.id,
           updatedMachineryFromServer
         );
-        Alert.alert("Success", "Machinery updated successfully.");
+        setSuccessMessage("Machinery updated successfully.");
+        setSuccessModalVisible(true);
         setModalVisible(false);
       }
     }
@@ -470,7 +453,7 @@ const ManageMachineryScreen = () => {
                     <TextInput
                       style={[
                         styles.input,
-                        tempModalRentPerDay === "" && styles.inputError,
+                        validationError && styles.inputError,
                       ]}
                       keyboardType="numeric"
                       value={tempModalRentPerDay}
@@ -480,6 +463,11 @@ const ManageMachineryScreen = () => {
                       accessibilityLabel="Rent per day input"
                     />
                   </View>
+                  {validationError && (
+                    <Text style={styles.validationErrorText}>
+                      {validationError}
+                    </Text>
+                  )}
 
                   <View style={styles.modalInputRow}>
                     <Text style={styles.modalLabel}>Remarks:</Text>
@@ -516,13 +504,7 @@ const ManageMachineryScreen = () => {
                         styles.actionButton,
                         styles.removeMachineryButton,
                       ]}
-                      onPress={() =>
-                        removeMachinery(
-                          selectedMachinery.id,
-                          selectedMachinery.type ||
-                            `Machinery #${selectedMachinery.id}`
-                        )
-                      }
+                      onPress={() => removeMachinery(selectedMachinery)}
                       disabled={isSaving}
                     >
                       <Text style={styles.actionButtonText}>Remove</Text>
@@ -549,6 +531,85 @@ const ManageMachineryScreen = () => {
               )}
             </View>
           </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Confirmation Modal */}
+      <Modal
+        visible={confirmRemoveModalVisible}
+        transparent
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmationModalContent}>
+            <Text style={styles.confirmationTitle}>Confirm Removal</Text>
+            <Text style={styles.confirmationMessage}>
+              Are you sure you want to remove "
+              {machineryToRemove?.type || `Machinery #${machineryToRemove?.id}`}
+              "? This action cannot be undone.
+            </Text>
+            <View style={styles.confirmationButtons}>
+              <TouchableOpacity
+                style={styles.confirmationButton}
+                onPress={() => setConfirmRemoveModalVisible(false)}
+              >
+                <Text style={styles.confirmationButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmationButton, styles.removeButton]}
+                onPress={async () => {
+                  if (machineryToRemove) {
+                    const success = await removeMachineryRequest(
+                      machineryToRemove.id
+                    );
+                    if (success) {
+                      setMachineries((prev) =>
+                        prev.filter((m) => m.id !== machineryToRemove.id)
+                      );
+                      setModalVisible(false);
+                      setConfirmRemoveModalVisible(false);
+                      setSuccessMessage("Machinery removed successfully.");
+                      setSuccessModalVisible(true);
+                    }
+                  }
+                }}
+              >
+                <Text style={styles.confirmationButtonText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal visible={errorModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.errorModalContent}>
+            <Text style={styles.errorTitle}>Error</Text>
+            <Text style={styles.errorMessage}>{errorMessage}</Text>
+            <TouchableOpacity
+              style={styles.errorButton}
+              onPress={() => setErrorModalVisible(false)}
+            >
+              <Text style={styles.errorButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal visible={successModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.successModalContent}>
+            <Text style={styles.successTitle}>Success</Text>
+            <Text style={styles.successMessage}>{successMessage}</Text>
+            <TouchableOpacity
+              style={styles.successButton}
+              onPress={() => setSuccessModalVisible(false)}
+            >
+              <Text style={styles.successButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>
@@ -747,10 +808,6 @@ const styles = StyleSheet.create({
     color: COLORS.TERTIARY || "#333",
     flex: 1,
   },
-  segmentedControl: {
-    flex: 1,
-    height: 36,
-  },
   input: {
     flex: 1,
     height: 44,
@@ -843,6 +900,113 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   pickerStyle: {},
+  confirmationModalContent: {
+    width: "80%",
+    backgroundColor: COLORS.WHITE || "#fff",
+    borderRadius: SIZES.BORDER_RADIUS_LARGE || 16,
+    padding: SIZES.PADDING * 1.2 || 20,
+    alignItems: "center",
+  },
+  confirmationTitle: {
+    fontSize: SIZES.H3 || 20,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.PRIMARY,
+    marginBottom: 10,
+  },
+  confirmationMessage: {
+    fontSize: SIZES.BODY || 16,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.TEXT_DARK || "#333",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  confirmationButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  confirmationButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
+    backgroundColor: COLORS.SECONDARY_LIGHT || "#aaa",
+  },
+  removeButton: {
+    backgroundColor: COLORS.ERROR || "darkred",
+  },
+  confirmationButtonText: {
+    color: COLORS.WHITE || "#fff",
+    fontSize: SIZES.BUTTON || 16,
+    fontFamily: FONTS.MEDIUM,
+  },
+  errorModalContent: {
+    width: "80%",
+    backgroundColor: COLORS.WHITE || "#fff",
+    borderRadius: SIZES.BORDER_RADIUS_LARGE || 16,
+    padding: SIZES.PADDING * 1.2 || 20,
+    alignItems: "center",
+  },
+  errorTitle: {
+    fontSize: SIZES.H3 || 20,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.ERROR || "red",
+    marginBottom: 10,
+  },
+  errorMessage: {
+    fontSize: SIZES.BODY || 16,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.TEXT_DARK || "#333",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  errorButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
+    backgroundColor: COLORS.PRIMARY,
+  },
+  errorButtonText: {
+    color: COLORS.WHITE || "#fff",
+    fontSize: SIZES.BUTTON || 16,
+    fontFamily: FONTS.MEDIUM,
+  },
+  successModalContent: {
+    width: "80%",
+    backgroundColor: COLORS.WHITE || "#fff",
+    borderRadius: SIZES.BORDER_RADIUS_LARGE || 16,
+    padding: SIZES.PADDING * 1.2 || 20,
+    alignItems: "center",
+  },
+  successTitle: {
+    fontSize: SIZES.H3 || 20,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.SUCCESS || "green",
+    marginBottom: 10,
+  },
+  successMessage: {
+    fontSize: SIZES.BODY || 16,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.TEXT_DARK || "#333",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  successButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: SIZES.BORDER_RADIUS_SMALL || 8,
+    backgroundColor: COLORS.PRIMARY,
+  },
+  successButtonText: {
+    color: COLORS.WHITE || "#fff",
+    fontSize: SIZES.BUTTON || 16,
+    fontFamily: FONTS.MEDIUM,
+  },
+  validationErrorText: {
+    color: COLORS.ERROR || "red",
+    fontSize: SIZES.BODY || 16,
+    marginBottom: 10,
+    textAlign: "center",
+  },
 });
 
 export default ManageMachineryScreen;
