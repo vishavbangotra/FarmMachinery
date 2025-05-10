@@ -8,6 +8,7 @@ import lombok.Data;
 
 @Data
 public class MachinerySearchResultDTO {
+    private Long MachineryId;
     private String farmDescription;
     private List<String> imageUrls;
     private MachineryType type;

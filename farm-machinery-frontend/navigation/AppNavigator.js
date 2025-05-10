@@ -46,7 +46,7 @@ const AppNavigator = () => {
         options={({ navigation }) => ({
           title: "Search Machinery",
           headerStyle: { backgroundColor: COLORS.BACKGROUND },
-          headerTintColor: COLORS.TEXT_DARK
+          headerTintColor: COLORS.TEXT_DARK,
         })}
       />
       <Stack.Screen
@@ -85,7 +85,15 @@ const AppNavigator = () => {
           headerTintColor: COLORS.TEXT_DARK,
         }}
       />
-      <Stack.Screen name="BookingList" component={BookingListScreen} />
+      <Stack.Screen
+        name="BookingList"
+        component={BookingListScreen}
+        options={({ navigation }) => ({
+          title: "Bookings",
+          headerStyle: { backgroundColor: COLORS.BACKGROUND },
+          headerTintColor: COLORS.TEXT_DARK,
+        })}
+      />
       <Stack.Screen
         name="AddFarmForMachineryScreen"
         component={AddFarmForMachineryScreen}

@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.farmify.backend.dto.BookingOwnerDTO;
 import com.farmify.backend.dto.BookingRequest;
 import com.farmify.backend.exception.ResourceNotFoundException;
 import com.farmify.backend.model.Booking;
@@ -26,15 +27,15 @@ public class BookingService {
     private final UserRepository userRepository;
     private final MachineryRepository machineryRepository;
 
-    public Booking createBooking(BookingRequest request) {
-        User user = userRepository.findById(request.getRequesterId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getRequesterId()));
+    public Booking createBooking(BookingRequest request, Long requesterId) {
+        User requester = userRepository.findById(requesterId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + requesterId));
         Machinery machinery = machineryRepository.findById(request.getMachineryId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Machinery not found with id: " + request.getMachineryId()));
 
         Booking booking = new Booking();
-        booking.setRequester(user);
+        booking.setRequester(requester);
         booking.setMachinery(machinery);
         booking.setStartDate(request.getStartDate());
         booking.setEndDate(request.getEndDate());
@@ -51,31 +52,22 @@ public class BookingService {
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
     }
+    
+    public List<BookingOwnerDTO> getAllBookingsByOwner(Long ownerId) {
+        List<BookingOwnerDTO> bookings;
+        try {
+            bookings = bookingRepository.findBookingsByOwnerId(ownerId);
+        } catch (Exception e) {
+            bookings = null;
+            System.err.println(e.getMessage());
+        }
+        return bookings;
+    }
 
-    public Booking updateBooking(BookingRequest request) {
-        Long id = request.getBookingId();
-        Booking existingBooking = getBookingById(id);
-        if (request.getRequesterId() != null) {
-            User user = userRepository.findById(request.getRequesterId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getRequesterId()));
-            existingBooking.setRequester(user);
-        }
-        if (request.getMachineryId() != null) {
-            Machinery machinery = machineryRepository.findById(request.getMachineryId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Machinery not found with id: " + request.getMachineryId()));
-            existingBooking.setMachinery(machinery);
-        }
-        if (request.getStartDate() != null) {
-            existingBooking.setStartDate(request.getStartDate());
-        }
-        if (request.getEndDate() != null) {
-            existingBooking.setEndDate(request.getEndDate());
-        }
-        if (request.getStatus() != null) {
-            existingBooking.setStatus(request.getStatus());
-        }
-        return bookingRepository.save(existingBooking);
+    public Booking updateBookingStatus(Long id, BookingStatus status ) {
+        Booking booking = bookingRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
+        booking.setStatus(status);
+        return bookingRepository.save(booking);
     }
 
     public void deleteBooking(Long id) {
