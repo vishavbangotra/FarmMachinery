@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { machineryService } from "../../services/machineryService";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === "android") {
@@ -100,10 +101,9 @@ const AddMachineryScreen = ({ navigation }) => {
   useEffect(() => {
     (async () => {
       if (Platform.OS !== "web") {
-        const { status } =
-          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== "granted") {
-          alert("Sorry, we need camera roll permissions to make this work!");
+          Alert.alert("Sorry, we need camera roll permissions to make this work!");
         }
       }
     })();
@@ -139,6 +139,7 @@ const AddMachineryScreen = ({ navigation }) => {
       }
     } catch (e) {
       console.error(e);
+      Alert.alert("Error", "Failed to pick images");
     }
   };
 
@@ -179,11 +180,9 @@ const AddMachineryScreen = ({ navigation }) => {
 
     schema.forEach((field) => {
       if (field.type === "switch") {
-        machineryDetails[field.name] =
-          formValues[machineryId]?.[field.name] || false;
+        machineryDetails[field.name] = formValues[machineryId]?.[field.name] || false;
       } else {
-        machineryDetails[field.name] =
-          formValues[machineryId]?.[field.name] || "";
+        machineryDetails[field.name] = formValues[machineryId]?.[field.name] || "";
       }
     });
 
@@ -350,8 +349,9 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: SIZES.PADDING,
+    justifyContent: "space-between",
     backgroundColor: COLORS.PRIMARY,
+    padding: SIZES.PADDING,
   },
   headerText: {
     flex: 1,

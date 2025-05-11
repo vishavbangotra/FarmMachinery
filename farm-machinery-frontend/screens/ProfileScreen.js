@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS } from "../constants/styles";
+import { userService } from "../services/authService";
 
 const ProfileScreen = () => {
   const [name, setName] = useState("");
@@ -45,8 +46,17 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleSave = () => {
-    
+  const handleSave = async () => {
+    try {
+      const updatedUser = await userService.updateUserProfile({
+        name,
+        imageUri,
+      });
+      Alert.alert("Success", "Profile updated successfully.");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      Alert.alert("Error", error.message || "Failed to update profile.");
+    }
   };
 
   return (

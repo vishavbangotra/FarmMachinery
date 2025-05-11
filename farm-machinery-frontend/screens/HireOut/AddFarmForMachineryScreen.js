@@ -18,6 +18,7 @@ import { BottomSheet } from "react-native-btr";
 import * as Haptics from "expo-haptics";
 import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
+import { farmService } from "../../services/farmService";
 
 // App constants
 const COLORS = {
@@ -57,22 +58,20 @@ const SelectFarmForMachinery = ({ navigation, route }) => {
 
   // Fetch saved farms from API (assumed to now return farms in the new format)
   useEffect(() => {
-    async function fetchFarms() {
-      try {
-        const response = await fetch(
-          `http://10.0.2.2:8080/api/farms/user/${userId}`
-        );
-        const data = await response.json();
-        setFarms(data);
-        if (data.length > 0 && !selectedFarm) {
-          setSelectedFarm(data[0]);
-        }
-      } catch (error) {
-        console.error("Error fetching farms:", error);
-      }
-    }
     fetchFarms();
   }, []);
+
+  const fetchFarms = async () => {
+    try {
+      const data = await farmService.getFarmsByUser(userId);
+      setFarms(data);
+      if (data.length > 0 && !selectedFarm) {
+        setSelectedFarm(data[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching farms:", error);
+    }
+  };
 
   // Set default selected farm and center map using the new format
   useEffect(() => {
@@ -161,26 +160,19 @@ const SelectFarmForMachinery = ({ navigation, route }) => {
   };
 
   const handleAddFarm = async (farm) => {
-    console.log(farm);
-    const response = await fetch(`http://10.0.2.2:8080/api/farms/add`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    try {
+      const newFarm = await farmService.addFarm({
         ownerId: userId,
         description: farm.description,
         latitude: farm.latitude,
         longitude: farm.longitude,
-      }),
-    });
-    if (!response.ok) {
-      throw new Error("Error adding farm:", response.status);
+      });
+      setFarms([...farms, newFarm]);
+      return newFarm;
+    } catch (error) {
+      console.error("Error adding farm:", error);
+      throw error;
     }
-    const id = await response.json();
-    const newFarm = { ...farm, id: id };
-    setFarms([...farms, newFarm]);
-    return newFarm;
   };
 
   const handleMapPress = (e) => {

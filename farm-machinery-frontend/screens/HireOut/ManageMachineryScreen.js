@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,15 +11,14 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import Icon from "react-native-vector-icons/FontAwesome";
 import { COLORS, SIZES, FONTS } from "../../constants/styles";
-import * as SecureStore from "expo-secure-store";
 import { Picker } from "@react-native-picker/picker";
-
-const API_BASE_URL = "http://10.0.2.2:8080";
+import { machineryService } from "../../services/machineryService";
 
 const ManageMachineryScreen = () => {
   const [machineries, setMachineries] = useState([]);
@@ -32,8 +31,7 @@ const ManageMachineryScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [confirmRemoveModalVisible, setConfirmRemoveModalVisible] =
-    useState(false);
+  const [confirmRemoveModalVisible, setConfirmRemoveModalVisible] = useState(false);
   const [machineryToRemove, setMachineryToRemove] = useState(null);
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -46,36 +44,12 @@ const ManageMachineryScreen = () => {
     setLoading(true);
     setRefreshing(true);
     try {
-      const authToken = await SecureStore.getItemAsync("jwt");
-      if (!authToken) {
-        setErrorMessage("No auth token found. Please log in.");
-        setErrorModalVisible(true);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-      const response = await fetch(`${API_BASE_URL}/api/machinery`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error("Fetch Error:", response.status, errorBody);
-        throw new Error(
-          `Network response was not ok (Status: ${response.status})`
-        );
-      }
-
-      const responseData = await response.json();
-      const data = responseData.data;
-      setMachineries(Array.isArray(data) ? data : []);
+      const data = await machineryService.getAllMachinery();
+      setMachineries(data);
       console.log("Machineries fetched:", data.length);
     } catch (error) {
       console.error("Failed to fetch machineries:", error);
-      setErrorMessage(`Failed to fetch machineries: ${error.message}`);
+      setErrorMessage(error.message || "Failed to fetch machineries");
       setErrorModalVisible(true);
       setMachineries([]);
     } finally {
@@ -99,98 +73,41 @@ const ManageMachineryScreen = () => {
     );
   };
 
-  const updateMachineryRequest = async (id, updates) => {
-    setIsSaving(true);
-    console.log("Updating machinery...");
-    console.log("Updates:", updates);
-    try {
-      const authToken = await SecureStore.getItemAsync("jwt");
-      if (!authToken) {
-        throw new Error("Authentication token not found.");
-      }
-      const response = await fetch(
-        `${API_BASE_URL}/api/machinery/update/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updates),
-        }
-      );
+  const handleSave = async () => {
+    if (isSaving) return;
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error("Update Error:", response.status, errorBody);
-        throw new Error(
-          `Failed to update machinery (Status: ${response.status})`
-        );
-      }
-
-      const updatedData = await response.json();
-      console.log("Machinery updated successfully on server:", updatedData);
-      return updatedData;
-    } catch (error) {
-      console.error("Failed to update machinery:", error);
-      setErrorMessage(`Failed to save changes: ${error.message}`);
-      setErrorModalVisible(true);
-      return null;
-    } finally {
-      setIsSaving(false);
+    const rentPerDay = parseFloat(tempModalRentPerDay);
+    if (isNaN(rentPerDay) || rentPerDay < 0) {
+      setValidationError("Rent per day must be a non-negative number.");
+      return;
     }
-  };
-
-  const removeMachineryRequest = async (id) => {
-    try {
-      const authToken = await SecureStore.getItemAsync("jwt");
-      if (!authToken) {
-        throw new Error("Authentication token not found.");
-      }
-      const response = await fetch(
-        `${API_BASE_URL}/api/machinery/delete/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        }
-      );
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error("Delete Error:", response.status, errorBody);
-        throw new Error(
-          `Network response was not ok (Status: ${response.status})`
-        );
-      }
-      console.log("Machinery deleted successfully on server:", id);
-      return true;
-    } catch (error) {
-      console.error("Failed to remove machinery:", error);
-      setErrorMessage(`Failed to remove machinery: ${error.message}`);
-      setErrorModalVisible(true);
-      return false;
-    }
-  };
-
-  const removeMachinery = (item) => {
-    setMachineryToRemove(item);
-    setConfirmRemoveModalVisible(true);
-  };
-
-  const openModal = (item) => {
-    setSelectedMachinery(item);
-    setTempModalStatus(item.status || statusOptions[0]);
-    setTempModalRentPerDay(String(item.rentPerDay || 0));
-    setTempModalImageUrls(item.imageUrls || []);
-    setTempModalRemark(item.remarks || "");
-    setModalVisible(true);
     setValidationError("");
+
+    if (selectedMachinery) {
+      const updates = {
+        status: tempModalStatus,
+        rentPerDay,
+        imageUrls: tempModalImageUrls,
+        remarks: tempModalRemark,
+      };
+
+      try {
+        const updatedMachinery = await machineryService.updateMachinery(selectedMachinery.id, updates);
+        if (updatedMachinery) {
+          updateMachineryLocalState(selectedMachinery.id, updatedMachinery);
+          setSuccessMessage("Machinery updated successfully.");
+          setSuccessModalVisible(true);
+          setModalVisible(false);
+        }
+      } catch (error) {
+        setErrorMessage(error.message);
+        setErrorModalVisible(true);
+      }
+    }
   };
 
   const handlePickImage = async () => {
-    const permissionResult =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       setErrorMessage("Permission to access camera roll is required!");
       setErrorModalVisible(true);
@@ -204,11 +121,7 @@ const ManageMachineryScreen = () => {
         quality: 0.8,
       });
 
-      if (
-        !pickerResult.canceled &&
-        pickerResult.assets &&
-        pickerResult.assets.length > 0
-      ) {
+      if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
         const newUri = pickerResult.assets[0].uri;
         setTempModalImageUrls((prevUrls) => [...prevUrls, newUri]);
       }
@@ -225,40 +138,35 @@ const ManageMachineryScreen = () => {
     );
   };
 
-  const handleSave = async () => {
-    if (isSaving) return;
+  const removeMachinery = async (item) => {
+    setMachineryToRemove(item);
+    setConfirmRemoveModalVisible(true);
+  };
 
-    const rentPerDay = parseFloat(tempModalRentPerDay);
-    if (isNaN(rentPerDay) || rentPerDay < 0) {
-      setValidationError("Rent per day must be a non-negative number.");
-      return;
-    }
-    setValidationError("");
-
-    if (selectedMachinery) {
-      const finalImageUrls = tempModalImageUrls;
-      const updates = {
-        status: tempModalStatus,
-        rentPerDay,
-        imageUrls: finalImageUrls,
-        remarks: tempModalRemark,
-      };
-
-      const updatedMachineryFromServer = await updateMachineryRequest(
-        selectedMachinery.id,
-        updates
-      );
-
-      if (updatedMachineryFromServer) {
-        updateMachineryLocalState(
-          selectedMachinery.id,
-          updatedMachineryFromServer
-        );
-        setSuccessMessage("Machinery updated successfully.");
-        setSuccessModalVisible(true);
+  const confirmRemoveMachinery = async () => {
+    if (machineryToRemove) {
+      try {
+        await machineryService.deleteMachinery(machineryToRemove.id);
+        setMachineries((prev) => prev.filter((m) => m.id !== machineryToRemove.id));
         setModalVisible(false);
+        setConfirmRemoveModalVisible(false);
+        setSuccessMessage("Machinery removed successfully.");
+        setSuccessModalVisible(true);
+      } catch (error) {
+        setErrorMessage(error.message);
+        setErrorModalVisible(true);
       }
     }
+  };
+
+  const openModal = (item) => {
+    setSelectedMachinery(item);
+    setTempModalStatus(item.status || statusOptions[0]);
+    setTempModalRentPerDay(String(item.rentPerDay || 0));
+    setTempModalImageUrls(item.imageUrls || []);
+    setTempModalRemark(item.remarks || "");
+    setModalVisible(true);
+    setValidationError("");
   };
 
   const renderTile = useCallback(
@@ -558,22 +466,7 @@ const ManageMachineryScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.confirmationButton, styles.removeButton]}
-                onPress={async () => {
-                  if (machineryToRemove) {
-                    const success = await removeMachineryRequest(
-                      machineryToRemove.id
-                    );
-                    if (success) {
-                      setMachineries((prev) =>
-                        prev.filter((m) => m.id !== machineryToRemove.id)
-                      );
-                      setModalVisible(false);
-                      setConfirmRemoveModalVisible(false);
-                      setSuccessMessage("Machinery removed successfully.");
-                      setSuccessModalVisible(true);
-                    }
-                  }
-                }}
+                onPress={confirmRemoveMachinery}
               >
                 <Text style={styles.confirmationButtonText}>Remove</Text>
               </TouchableOpacity>

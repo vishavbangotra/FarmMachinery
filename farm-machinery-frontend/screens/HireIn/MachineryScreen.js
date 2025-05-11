@@ -12,6 +12,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../../constants/styles";
+import { machineryService } from "../../services/machineryService";
 
 const MACHINES = [
   { id: "tractor", label: "Tractor", icon: "tractor" },
@@ -43,16 +44,17 @@ export default function MachineryScreen({ navigation }) {
     if (date) setEndDate(date);
   };
 
-   useEffect(() => {
-     const today = new Date();
-     const yesterday = new Date();
-     yesterday.setDate(today.getDate() - 1);
-     setStartDate(yesterday);
-     setEndDate(today);
-   }, []);
+  useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    setStartDate(yesterday);
+    setEndDate(today);
+  }, []);
 
   const validRange = startDate && endDate && endDate > startDate;
   const canProceed = selectedId && validRange;
+
   const format = (d) => d.toLocaleDateString();
 
   const renderItem = ({ item }) => {
@@ -187,14 +189,13 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_LIGHT,
   },
   errorText: {
-    color: COLORS.ACCENT,
+    color: COLORS.ERROR,
     fontSize: SIZES.INFO_TEXT,
-    marginBottom: SIZES.MARGIN_MEDIUM,
+    fontFamily: FONTS.REGULAR,
     textAlign: "center",
+    marginBottom: SIZES.MARGIN_MEDIUM,
   },
-  list: {
-    paddingBottom: SIZES.MARGIN_LARGE,
-  },
+  list: { paddingBottom: SIZES.MARGIN_LARGE },
   card: {
     flexDirection: "row",
     alignItems: "center",
@@ -216,6 +217,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: SIZES.MARGIN_MEDIUM,
+  },
+  iconSelected: {
+    backgroundColor: COLORS.ACCENT,
   },
   cardText: {
     flex: 1,

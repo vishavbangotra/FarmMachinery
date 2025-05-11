@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -16,15 +16,13 @@ import {
 import * as SplashScreen from "expo-splash-screen";
 import * as CONSTANTS from "../constants/styles";
 import { AuthContext } from "../context/AuthContext";
-import { useContext } from "react";
-import * as SecureStore from "expo-secure-store";
+import { authService } from "../services/authService";
 
 const { width } = Dimensions.get("window");
 const OTP_BOX_WIDTH = width * 0.12;
-const API_BASE_URL = "http://10.0.2.2:8080/auth";
 
 const LoginScreen = ({ navigation }) => {
-  let [fontsLoaded] = useFonts({
+  const [fontsLoaded] = useFonts({
     RobotoCondensed_300Light,
   });
   const [countryCode, setCountryCode] = useState("+91");
@@ -55,20 +53,8 @@ const LoginScreen = ({ navigation }) => {
       }
 
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/send-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ phoneNumber: fullNumber }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setIsOtpSent(true);
-      } else {
-        throw new Error(data.message || "Failed to send OTP");
-      }
+      await authService.sendOtp(fullNumber);
+      setIsOtpSent(true);
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {
@@ -85,26 +71,10 @@ const LoginScreen = ({ navigation }) => {
       }
 
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/verify-otp`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phoneNumber: `${countryCode}${phoneNumber}`,
-          otp: otpString,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        await SecureStore.setItemAsync("jwt", data.token);
-        setIsAuthenticated(true);
-        if (data.IsNewUser) {
-          navigation.navigate("Profile");
-        }
-      } else {
-        throw new Error(data.message || "OTP verification failed");
+      const response = await authService.verifyOtp(`${countryCode}${phoneNumber}`, otpString);
+      setIsAuthenticated(true);
+      if (response.isNewUser) {
+        navigation.navigate("Profile");
       }
     } catch (error) {
       Alert.alert("Error", error.message);

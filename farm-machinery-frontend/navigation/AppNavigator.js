@@ -8,7 +8,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import HomeScreen from "../screens/HomeScreen";
 import MachineryScreen from "../screens/HireIn/MachineryScreen";
 import MachinerySearchScreen from "../screens/HireIn/MachinerySearchScreen";
-import FarmSelectScreen from "../screens/HireIn/FarmSelectScreen";
+import FarmSelectScreen from "../screens/FarmSelectScreen";
 import HireOutScreen from "../screens/HireOut/HireOutScreen";
 import AddMachineryScreen from "../screens/HireOut/AddMachineryScreen";
 import ManageMachineryScreen from "../screens/HireOut/ManageMachineryScreen";

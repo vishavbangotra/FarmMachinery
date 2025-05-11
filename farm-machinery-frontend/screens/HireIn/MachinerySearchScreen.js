@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useLayoutEffect } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import {
   View,
   Text,
@@ -14,8 +13,10 @@ import {
   RefreshControl,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../constants/styles";
-import * as SecureStore from "expo-secure-store";
+import { machineryService } from "../../services/machineryService";
+import { bookingService } from "../../services/bookingService";
 
 const windowWidth = Dimensions.get("window").width;
 
@@ -53,36 +54,24 @@ const MachineryItem = ({ item, onPress }) => (
 );
 
 const MachinerySearchScreen = ({ route }) => {
-  const { distance, endDate, farm, pushTokens, machinery, startDate } =
-    route.params;
+  const { distance, endDate, farm, machinery, startDate } = route.params;
   const navigation = useNavigation();
 
-  // State declarations
   const [searchResults, setSearchResults] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
   const [isSendAllModalVisible, setSendAllModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isBookingModalVisible, setBookingModalVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // Initially true for first load
-  const [isSending, setIsSending] = useState(false);
-  const [refreshing, setRefreshing] = useState(false); // For pull-to-refresh
-  const [fetchError, setFetchError] = useState(null); // For fetch errors
 
-  // Set navigation header options
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <TouchableOpacity onPress={handleSendToAll}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 10,
-              marginRight: 10,
-            }}
-          >
-            <Text style={{ color: COLORS.TERTIARY, fontWeight: "800" }}>
-              Send All
-            </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginRight: 10 }}>
+            <Text style={{ color: COLORS.TERTIARY, fontWeight: "800" }}>Send All</Text>
             <Ionicons name="send" size={24} color={COLORS.TERTIARY} />
           </View>
         </TouchableOpacity>
@@ -90,24 +79,22 @@ const MachinerySearchScreen = ({ route }) => {
     });
   }, [navigation]);
 
-  // Fetch machinery data from API
   const fetchMachinery = async () => {
     try {
-      const apiUrl = `http://10.0.2.2:8080/api/machinery/search?type=${machinery.toUpperCase()}&lon=${
-        farm.longitude
-      }&lat=${farm.latitude}&distance=${distance}`;
-      const response = await fetch(apiUrl);
-      if (!response.ok) throw new Error("Network response was not ok");
-      const machineryList = await response.json();
-      setSearchResults(machineryList);
-      setFetchError(null); // Clear any previous errors
+      const response = await machineryService.searchMachinery(
+        machinery,
+        farm.longitude,
+        farm.latitude,
+        distance
+      );
+      setSearchResults(response);
+      setFetchError(null);
     } catch (error) {
       console.error("Error fetching machinery data:", error);
       setFetchError("Failed to fetch machinery data. Please try again.");
     }
   };
 
-  // Initial data fetch
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -117,68 +104,44 @@ const MachinerySearchScreen = ({ route }) => {
     loadData();
   }, [machinery, farm, distance]);
 
-  // Function to send a booking request
-  const sendBookingRequest = async (machineryId) => {
-    try {
-      const authToken = await SecureStore.getItemAsync("jwt");
-      if (!authToken) throw new Error("No authentication token found");
-      const response = await fetch("http://10.0.2.2:8080/api/bookings/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({
-          machineryId: machineryId,
-          startDate: startDate,
-          endDate: endDate,
-        }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create booking");
-      }
-      const booking = await response.json();
-      console.log("Booking created:", booking);
-      return booking;
-    } catch (error) {
-      console.error("Error creating booking:", error);
-      throw error;
-    }
-  };
-
-  // Handle "Send to All" action
   const handleSendToAll = () => setSendAllModalVisible(true);
 
   const confirmSendToAll = async () => {
     setIsSending(true);
     try {
-      const promises = searchResults.map((item) =>
-        sendBookingRequest(item.machineryId)
+      const promises = searchResults.map(item =>
+        bookingService.createBooking({
+          machineryId: item.machineryId,
+          startDate,
+          endDate
+        })
       );
       await Promise.all(promises);
       setSendAllModalVisible(false);
       navigation.navigate("BookingList");
     } catch (error) {
-      alert("Failed to send some or all booking requests.");
+      Alert.alert("Error", "Failed to send some or all booking requests.");
     } finally {
       setIsSending(false);
     }
   };
 
-  // Handle individual booking request
   const confirmBooking = async () => {
-    if (selectedItem) {
-      setIsSending(true);
-      try {
-        await sendBookingRequest(selectedItem.machineryId);
-        setBookingModalVisible(false);
-        navigation.navigate("BookingList");
-      } catch (error) {
-        alert("Failed to send booking request.");
-      } finally {
-        setIsSending(false);
-      }
+    if (!selectedItem) return;
+    
+    setIsSending(true);
+    try {
+      await bookingService.createBooking({
+        machineryId: selectedItem.machineryId,
+        startDate,
+        endDate
+      });
+      setBookingModalVisible(false);
+      navigation.navigate("BookingList");
+    } catch (error) {
+      Alert.alert("Error", "Failed to send booking request.");
+    } finally {
+      setIsSending(false);
     }
   };
 
