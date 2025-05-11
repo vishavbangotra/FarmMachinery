@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.farmify.backend.dto.ApiResponse;
 import com.farmify.backend.dto.MachineryDTO;
 import com.farmify.backend.dto.MachineryRequestDTO;
 import com.farmify.backend.dto.MachinerySearchResultDTO;
@@ -18,123 +19,136 @@ import com.farmify.backend.service.MachineryService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/machinery")
 @RequiredArgsConstructor
 public class MachineryController {
+    private static final Logger logger = LoggerFactory.getLogger(MachineryController.class);
     private final MachineryService machineryService;
     private final JwtService jwtService;
 
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("permitAll()")
-    public ResponseEntity<Machinery> addMachinery(
-            // <-- bind all simple form fields (type, farmId, model, year…) into this DTO:
+    public ResponseEntity<ApiResponse<Machinery>> addMachinery(
             @ModelAttribute MachineryRequestDTO machineryDto,
-
-            // <-- pick up zero-or-more file-parts called "files":
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
-
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-
-        // Check if Authorization header is valid
+        logger.info("Attempting to add machinery for ownerId={}", machineryDto.getOwnerId());
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            logger.warn("Unauthorized machinery creation attempt");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Unauthorized", null));
         }
-
         String token = authorizationHeader.substring("Bearer ".length()).trim();
         Long userId = jwtService.extractUserId(token);
         machineryDto.setOwnerId(userId);
         try {
             Machinery createdMachinery = machineryService.createMachinery(machineryDto, files);
-            return ResponseEntity.ok(createdMachinery);
+            logger.info("Machinery created with id={}", createdMachinery.getId());
+            return ResponseEntity.ok(new ApiResponse<>(true, "Machinery created successfully", createdMachinery));
         } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            logger.warn("Entity not found during machinery creation: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Entity not found", null));
         } catch (IllegalArgumentException e) {
-            System.out.println("Error creating machinery: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            logger.error("Error creating machinery: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
         } catch (Exception e) {
-            System.out.println("Error creating machinery: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            logger.error("Error creating machinery: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteMachinery(@PathVariable Long id,
+    public ResponseEntity<ApiResponse<Void>> deleteMachinery(@PathVariable Long id,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        // Check if Authorization header is valid
+        logger.info("Attempting to delete machinery with id={}", id);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            logger.warn("Unauthorized machinery deletion attempt");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Unauthorized", null));
         }
-
         String token = authorizationHeader.substring("Bearer ".length()).trim();
-
         if (!jwtService.extractUserId(token).equals(machineryService.getMachineryById(id).getOwner().getId())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            logger.warn("User not authorized to delete machinery with id={}", id);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Unauthorized", null));
         }
         machineryService.deleteMachinery(id);
-        return ResponseEntity.noContent().build();
+        logger.info("Machinery deleted with id={}", id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Machinery deleted", null));
     }
 
     @GetMapping
-    public ResponseEntity<ArrayList<MachineryDTO>> getAllMachineriesByOwner(
+    public ResponseEntity<ApiResponse<ArrayList<MachineryDTO>>> getAllMachineriesByOwner(
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-
-        // Check if Authorization header is valid
+        logger.info("Fetching all machineries for owner");
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            logger.warn("Unauthorized machinery fetch attempt");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Unauthorized", null));
         }
         String token = authorizationHeader.substring("Bearer ".length()).trim();
-
         Long ownerId = jwtService.extractUserId(token);
-        return ResponseEntity.ok(machineryService.getAllMachineryByOwnerId(ownerId));
+        ArrayList<MachineryDTO> machineryList = machineryService.getAllMachineryByOwnerId(ownerId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Machineries fetched successfully", machineryList));
     }
 
     @PutMapping(value = "/update/{id}")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<Machinery> updateMachinery(
+    public ResponseEntity<ApiResponse<Machinery>> updateMachinery(
             @PathVariable Long id,
             @RequestBody UpdateMachineryDTO dto,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-
+        logger.info("Attempting to update machinery with id={}", id);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            logger.warn("Unauthorized machinery update attempt");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Unauthorized", null));
         }
-
         String token = authorizationHeader.substring("Bearer ".length()).trim();
         Long userId = jwtService.extractUserId(token);
-
         try {
             Machinery machinery = machineryService.getMachineryById(id);
             if (!userId.equals(machinery.getOwner().getId())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                logger.warn("User not authorized to update machinery with id={}", id);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new ApiResponse<>(false, "Unauthorized", null));
             }
-
             Machinery updatedMachinery = machineryService.updateMachinery(id, dto);
-            return ResponseEntity.ok(updatedMachinery);
+            logger.info("Machinery updated with id={}", id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Machinery updated successfully", updatedMachinery));
         } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            logger.warn("Machinery not found for update: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, "Machinery not found", null));
         } catch (Exception e) {
-            System.out.println("Error updating machinery: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            logger.error("Error updating machinery: {}", e.getMessage(), e);
+            throw e;
         }
     }
 
     @GetMapping("/search")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<List<MachinerySearchResultDTO>> findMachinery(@RequestParam String type,
+    public ResponseEntity<ApiResponse<List<MachinerySearchResultDTO>>> findMachinery(@RequestParam String type,
             @RequestParam double lon,
             @RequestParam double lat,
             @RequestParam double distance) {
-        List<MachinerySearchResultDTO> machineryList = machineryService.getAllMachineryByDistanceAndType(type, lon, lat,
-                distance);
-        return ResponseEntity.ok(machineryList);
+        logger.info("Searching machinery by type={}, lon={}, lat={}, distance={}", type, lon, lat, distance);
+        List<MachinerySearchResultDTO> machineryList = machineryService.getAllMachineryByDistanceAndType(type, lon, lat, distance);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Machinery search results fetched", machineryList));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("permitAll()")
-    public ResponseEntity<Machinery> getMachineryById(@PathVariable Long id) {
-        return ResponseEntity.ok().body(machineryService.getMachineryById(id));
+    public ResponseEntity<ApiResponse<Machinery>> getMachineryById(@PathVariable Long id) {
+        logger.info("Fetching machinery with id={}", id);
+        Machinery machinery = machineryService.getMachineryById(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Machinery fetched successfully", machinery));
     }
 }

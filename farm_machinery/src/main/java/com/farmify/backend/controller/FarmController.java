@@ -11,12 +11,15 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.farmify.backend.dto.ApiResponse;
 import com.farmify.backend.dto.FarmDTO;
 import com.farmify.backend.model.Farm;
 import com.farmify.backend.service.FarmService;
 import com.farmify.backend.service.JwtService;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.validation.Valid;
 
@@ -24,57 +27,69 @@ import javax.validation.Valid;
 @RequestMapping("/api/farms")
 @RequiredArgsConstructor
 public class FarmController {
+    private static final Logger logger = LoggerFactory.getLogger(FarmController.class);
     private final FarmService farmService;
     private final JwtService jwtService;
 
     @PostMapping("/add")
-    public ResponseEntity<Long> addFarm(
+    public ResponseEntity<ApiResponse<Long>> addFarm(
             @Valid @RequestBody FarmDTO farmDTO,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        // Check if Authorization header is valid
+        logger.info("Attempting to add farm for ownerId={}", farmDTO.getOwnerId());
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            logger.warn("Unauthorized farm creation attempt");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Unauthorized", null));
         }
-
         String token = authorizationHeader.substring("Bearer ".length()).trim();
         try {
             Long userId = jwtService.extractUserId(token);
             farmDTO.setOwnerId(userId);
             Farm createdFarm = farmService.createFarm(farmDTO);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdFarm.getId());
-        } catch (Exception e) { // Ideally, replace with specific exception (e.g., JwtException)
-            System.out.println("Error creating farm: " + e.getMessage()); // Replace with logger in production
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            logger.info("Farm created with id={}", createdFarm.getId());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new ApiResponse<>(true, "Farm created successfully", createdFarm.getId()));
+        } catch (Exception e) {
+            logger.error("Error creating farm: {}", e.getMessage(), e);
+            throw e; // Let global exception handler manage this
         }
     }
 
     @GetMapping
-    public ResponseEntity<Iterable<Farm>> getAllFarms() {
-        return ResponseEntity.ok(farmService.getAllFarms());
+    public ResponseEntity<ApiResponse<Iterable<Farm>>> getAllFarms() {
+        logger.info("Fetching all farms");
+        Iterable<Farm> farms = farmService.getAllFarms();
+        return ResponseEntity.ok(new ApiResponse<>(true, "Farms fetched successfully", farms));
     }
 
     @GetMapping("/user/{id}")
-    public ResponseEntity<Iterable<Farm>> getFarmsByUserId(@PathVariable Long id) {
-        return ResponseEntity.ok(farmService.getFarmsByUserId(id));
+    public ResponseEntity<ApiResponse<Iterable<Farm>>> getFarmsByUserId(@PathVariable Long id) {
+        logger.info("Fetching farms for userId={}", id);
+        Iterable<Farm> farms = farmService.getFarmsByUserId(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Farms fetched successfully", farms));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Farm> getFarmById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Farm>> getFarmById(@PathVariable Long id) {
+        logger.info("Fetching farm with id={}", id);
         return farmService.findFarmById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .map(farm -> ResponseEntity.ok(new ApiResponse<>(true, "Farm fetched successfully", farm)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ApiResponse<>(false, "Farm not found", null)));
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteFarm(@PathVariable Long id,
+    public ResponseEntity<ApiResponse<Void>> deleteFarm(@PathVariable Long id,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        // Check if Authorization header is valid
+        logger.info("Attempting to delete farm with id={}", id);
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            logger.warn("Unauthorized farm deletion attempt");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Unauthorized", null));
         }
-
         String token = authorizationHeader.substring("Bearer ".length()).trim();
         farmService.deleteFarm(id);
-        return ResponseEntity.noContent().build();
+        logger.info("Farm deleted with id={}", id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Farm deleted", null));
     }
 }

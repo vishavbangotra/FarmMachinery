@@ -1,21 +1,16 @@
 package com.farmify.backend.dto;
 
-import javax.validation.constraints.NotBlank;
-
-public class OtpResponse {
+public class ApiResponse<T> {
     private boolean success;
-    @NotBlank(message = "Message is required")
     private String message;
-    @NotBlank(message = "Status is required")
-    private String status;
+    private T data;
 
-    public OtpResponse() {
-    }
+    public ApiResponse() {}
 
-    public OtpResponse(boolean success, String message, String status) {
+    public ApiResponse(boolean success, String message, T data) {
         this.success = success;
         this.message = message;
-        this.status = status;
+        this.data = data;
     }
 
     public boolean isSuccess() {
@@ -34,11 +29,11 @@ public class OtpResponse {
         this.message = message;
     }
 
-    public String getStatus() {
-        return status;
+    public T getData() {
+        return data;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setData(T data) {
+        this.data = data;
     }
 }

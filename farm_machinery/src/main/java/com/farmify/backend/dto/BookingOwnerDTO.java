@@ -3,19 +3,32 @@ package com.farmify.backend.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import com.farmify.backend.model.BookingStatus;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.NotBlank;
 
 public class BookingOwnerDTO {
+    @NotNull
     private Long bookingId;
+    @NotNull
     private Long machineryId;
+    @NotNull
     private Long requesterId;
+    @NotNull
     private BookingStatus status;
+    @NotNull
     private LocalDateTime createdAt;
+    @NotNull
     private LocalDate startDate;
+    @NotNull
     private LocalDate endDate;
+    @NotBlank
     private String modelInfo;
     private String remarks;
+    @NotNull
     private double rentPerDay;
+    @NotNull
     private Long farmId;
+    @NotNull
     private Long ownerId;
     private String farmDescription;
     private Double latitude;

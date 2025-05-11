@@ -1,7 +1,10 @@
 package com.farmify.backend.dto;
 
+import javax.validation.constraints.NotBlank;
+
 public class AuthResponse {
     private boolean success;
+    @NotBlank(message = "Message is required")
     private String message;
     private String token;
     private boolean newUser;

@@ -1,6 +1,9 @@
 package com.farmify.backend.dto;
 
+import javax.validation.constraints.NotBlank;
+
 public class OtpRequest {
+    @NotBlank(message = "Phone number is required")
     private String phoneNumber;
 
     public OtpRequest() {

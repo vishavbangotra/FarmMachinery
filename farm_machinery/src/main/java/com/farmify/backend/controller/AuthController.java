@@ -28,36 +28,34 @@ public class AuthController {
     @Autowired
     JwtService jwtService;
 
-
     @PostMapping("/send-otp")
-    public ResponseEntity<OtpResponse> sendOtp(@RequestBody OtpRequest request) {
+    public ResponseEntity<ApiResponse<OtpResponse>> sendOtp(@RequestBody OtpRequest request) {
         try {
             Verification verification = Verification.creator(
                     verifyServiceSid,
-                    request.getPhoneNumber(), // Ensure this is in E.164 format (e.g., +912345678901)
+                    request.getPhoneNumber(),
                     "sms").create();
-
             logger.info("OTP sent to {}", request.getPhoneNumber());
-            return ResponseEntity.ok(new OtpResponse(true, "OTP sent successfully", verification.getStatus()));
+            OtpResponse otpResponse = new OtpResponse(true, "OTP sent successfully", verification.getStatus());
+            return ResponseEntity.ok(new ApiResponse<>(true, "OTP sent successfully", otpResponse));
         } catch (ApiException e) {
             logger.error("Twilio API error while sending OTP to {}: {}", request.getPhoneNumber(), e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(new OtpResponse(false, "Twilio API error: " + e.getMessage(), null));
+            OtpResponse otpResponse = new OtpResponse(false, "Twilio API error: " + e.getMessage(), null);
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Twilio API error", otpResponse));
         } catch (Exception e) {
             logger.error("Unexpected error while sending OTP to {}: {}", request.getPhoneNumber(), e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(new OtpResponse(false, "Unexpected error: " + e.getMessage(), null));
+            OtpResponse otpResponse = new OtpResponse(false, "Unexpected error: " + e.getMessage(), null);
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Unexpected error", otpResponse));
         }
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<Object> verifyOtp(@RequestBody OtpVerifyRequest request) {
+    public ResponseEntity<ApiResponse<Object>> verifyOtp(@RequestBody OtpVerifyRequest request) {
         try {
             VerificationCheck verificationCheck = VerificationCheck.creator(verifyServiceSid, request
                     .getOtp())
                     .setTo(request.getPhoneNumber())
                     .create();
-
             if ("approved".equalsIgnoreCase(verificationCheck.getStatus())) {
                 boolean isNewUser = false;
                 if(userService.findByPhoneNumber(request.getPhoneNumber()) == null) {
@@ -66,19 +64,21 @@ public class AuthController {
                 }
                 Long userId = userService.findByPhoneNumber(request.getPhoneNumber()).getId();
                 String token = jwtService.generateToken(userId, request.getPhoneNumber());
-                return ResponseEntity.ok(new AuthResponse(true, "Login successful", token, isNewUser));
+                AuthResponse authResponse = new AuthResponse(true, "Login successful", token, isNewUser);
+                return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", authResponse));
             } else {
                 logger.warn("Invalid OTP for phone number: {}", request.getPhoneNumber());
-                return ResponseEntity.ok(new OtpResponse(false, "Invalid OTP", verificationCheck.getStatus()));
+                OtpResponse otpResponse = new OtpResponse(false, "Invalid OTP", verificationCheck.getStatus());
+                return ResponseEntity.ok(new ApiResponse<>(false, "Invalid OTP", otpResponse));
             }
         } catch (ApiException e) {
             logger.error("Twilio API error while verifying OTP for {}: {}", request.getPhoneNumber(), e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(new OtpResponse(false, "Twilio API error: " + e.getMessage(), null));
+            OtpResponse otpResponse = new OtpResponse(false, "Twilio API error: " + e.getMessage(), null);
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Twilio API error", otpResponse));
         } catch (Exception e) {
             logger.error("Unexpected error while verifying OTP for {}: {}", request.getPhoneNumber(), e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(new OtpResponse(false, "Unexpected error: " + e.getMessage(), null));
+            OtpResponse otpResponse = new OtpResponse(false, "Unexpected error: " + e.getMessage(), null);
+            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Unexpected error", otpResponse));
         }
     }
 }

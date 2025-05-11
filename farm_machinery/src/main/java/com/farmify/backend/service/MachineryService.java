@@ -1,7 +1,5 @@
 package com.farmify.backend.service;
 
-import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,9 +29,11 @@ import com.farmify.backend.repository.UserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MachineryService {
 
     private final TractorRepository tractorRepository;
@@ -47,8 +47,12 @@ public class MachineryService {
     // Main Functions
 
     /**
-     * Retrieves machinery of a specific type within a given distance from a
-     * location.
+     * Retrieves machinery of a specific type within a given distance from a location.
+     * @param type Machinery type (e.g., "tractor", "rotavator")
+     * @param lon Longitude
+     * @param lat Latitude
+     * @param distance Distance in kilometers
+     * @return List of MachinerySearchResultDTO
      */
     public List<MachinerySearchResultDTO> getAllMachineryByDistanceAndType(@Param("type") String type, double lon,
             double lat, double distance) {
@@ -67,8 +71,6 @@ public class MachineryService {
                         result.setLongitude(m.getFarmLocation().getLongitude());
                     }
                     if (m.getOwner() != null) {
-                        // result.setOwnerImage(m.getOwner().getImageUrl());
-                        // result.setOwnerName(m.getOwner().getName());
                         result.setOwnerPhone(m.getOwner().getPhoneNumber());
                     }
                     if (m.getRentPerDay() != null) {
@@ -84,12 +86,18 @@ public class MachineryService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Updates a machinery entity with new values from the DTO.
+     * @param id Machinery ID
+     * @param dto UpdateMachineryDTO
+     * @return Updated Machinery
+     */
     @Transactional
     public Machinery updateMachinery(Long id, UpdateMachineryDTO dto) {
         Machinery machinery = machineryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Machinery not found"));
 
-        System.out.println(dto.toString());
+        log.info("Updating machinery with id {}: {}", id, dto);
 
         if (dto.getRentPerDay() != null) {
             machinery.setRentPerDay(dto.getRentPerDay());
@@ -122,6 +130,7 @@ public class MachineryService {
 
     /**
      * Deletes a machinery item and its associated images from S3 and the database.
+     * @param machineryId Machinery ID
      */
     @Transactional
     public void deleteMachinery(Long machineryId) {
@@ -135,8 +144,7 @@ public class MachineryService {
     }
 
     /**
-     * Calculates the distance between two points on Earth using the Haversine
-     * formula.
+     * Calculates the distance between two points on Earth using the Haversine formula.
      * Returns distance in kilometers.
      */
     public static double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -160,8 +168,10 @@ public class MachineryService {
     }
 
     /**
-     * Creates a new machinery item and uploads its images, ensuring the operation
-     * is atomic.
+     * Creates a new machinery item and uploads its images, ensuring the operation is atomic.
+     * @param dto MachineryRequestDTO
+     * @param files List of MultipartFile images
+     * @return Created Machinery
      */
     @Transactional
     public Machinery createMachinery(MachineryRequestDTO dto, List<MultipartFile> files) {
@@ -182,7 +192,7 @@ public class MachineryService {
 
         if (files != null && !files.isEmpty()) {
             setImages(machinery, files);
-            System.out.println("Images size after setImages: " + machinery.getImages().size());
+            log.info("Images size after setImages: {}", machinery.getImages().size());
         }
 
         return machinery;
@@ -190,6 +200,8 @@ public class MachineryService {
 
     /**
      * Retrieves a machinery item by its ID.
+     * @param id Machinery ID
+     * @return Machinery
      */
     public Machinery getMachineryById(Long id) {
         return machineryRepository.findById(id)
@@ -198,6 +210,8 @@ public class MachineryService {
 
     /**
      * Retrieves all machinery owned by a specific user.
+     * @param ownerId User ID
+     * @return List of MachineryDTO
      */
     public ArrayList<MachineryDTO> getAllMachineryByOwnerId(Long ownerId) {
         User user = userRepository.findById(ownerId)
@@ -237,6 +251,8 @@ public class MachineryService {
 
     /**
      * Uploads images for a machinery item after it has been saved.
+     * @param machinery Machinery entity
+     * @param files List of MultipartFile images
      */
     private void setImages(Machinery machinery, List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
@@ -250,6 +266,7 @@ public class MachineryService {
         try {
             machineryImageService.uploadImages(machinery.getId(), files, imageNumbers);
         } catch (Exception e) {
+            log.error("Failed to upload images for machinery ID {}", machinery.getId(), e);
             throw new RuntimeException("Failed to upload images for machinery ID " + machinery.getId(), e);
         }
     }
