@@ -55,7 +55,7 @@ const HomeScreen = ({ navigation }) => {
         <MaterialCommunityIcons
           name={item.iconName}
           size={32}
-          color={COLORS.WHITE}
+          color={"#fff"}
         />
       </View>
       <View style={styles.textWrapper}>
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   tile: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.SECONDARY,
+    backgroundColor: COLORS.PRIMARY,
     borderRadius: SIZES.BORDER_RADIUS,
     padding: SIZES.PADDING,
     marginBottom: SIZES.MARGIN_MEDIUM,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.SECONDARY,
     alignItems: "center",
     justifyContent: "center",
     marginRight: SIZES.MARGIN_MEDIUM,
@@ -120,16 +120,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontSize: SIZES.H2,
+    fontSize: 18,
     fontFamily: FONTS.BOLD,
-    color: COLORS.TEXT_DARK,
+    color: COLORS.TEXT_LIGHT,
     marginBottom: 4,
   },
   description: {
     fontSize: SIZES.BODY,
     fontWeight: 800,
     fontFamily: FONTS.REGULAR,
-    color: COLORS.TEXT_DARK,
+    color: COLORS.TEXT_LIGHT,
   },
 });
 

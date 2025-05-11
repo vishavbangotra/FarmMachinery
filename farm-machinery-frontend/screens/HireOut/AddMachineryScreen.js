@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     paddingBottom: SIZES.MARGIN_LARGE,
   },
   machineryItem: {
-    backgroundColor: COLORS.INPUT_BG,
+    backgroundColor: COLORS.BACKGROUND,
     borderRadius: SIZES.BORDER_RADIUS,
     marginBottom: SIZES.MARGIN_MEDIUM,
     overflow: "hidden",
@@ -358,11 +358,12 @@ const styles = StyleSheet.create({
     fontSize: SIZES.BUTTON_TEXT,
     fontWeight: "700",
     fontFamily: FONTS.MEDIUM,
-    color: COLORS.TEXT_DARK,
+    color: COLORS.TEXT_LIGHT,
     marginLeft: SIZES.MARGIN_SMALL,
   },
   icon: {
     marginRight: SIZES.MARGIN_SMALL,
+    color: COLORS.TEXT_LIGHT,
   },
   formContainer: {
     padding: SIZES.PADDING,

@@ -1,5 +1,6 @@
 package com.farmify.backend.service;
 
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.farmify.backend.dto.MachineryDTO;
 import com.farmify.backend.dto.MachineryRequestDTO;
 import com.farmify.backend.dto.MachinerySearchResultDTO;
+import com.farmify.backend.dto.UpdateMachineryDTO;
 import com.farmify.backend.model.Machinery;
 import com.farmify.backend.model.MachineryImage;
 import com.farmify.backend.model.MachineryStatus;
@@ -76,9 +78,46 @@ public class MachineryService {
                     result.setModel(m.getModelInfo() != null ? m.getModelInfo() : "");
                     result.setRemarks(m.getRemarks());
                     result.setImageUrls(machineryImageService.listImageUrls(m.getId()));
+                    result.setMachineryId(m.getId());
                     return result;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Machinery updateMachinery(Long id, UpdateMachineryDTO dto) {
+        Machinery machinery = machineryRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Machinery not found"));
+
+        System.out.println(dto.toString());
+
+        if (dto.getRentPerDay() != null) {
+            machinery.setRentPerDay(dto.getRentPerDay());
+        }
+        if (dto.getRemarks() != null) {
+            machinery.setRemarks(dto.getRemarks());
+        }
+        if (dto.getStatus() != null) {
+            machinery.setStatus(dto.getStatus());
+        }
+
+        if (machinery instanceof Tractor tractor) {
+            if (dto.getHorsepower() != null) {
+                tractor.setHorsepower(dto.getHorsepower());
+            }
+            if (dto.getIs4x4() != null) {
+                tractor.setIs4x4(dto.getIs4x4());
+            }
+        } else if (machinery instanceof Rotavator rotavator) {
+            if (dto.getWorkingDepth() != null) {
+                rotavator.setWorkingDepth(dto.getWorkingDepth());
+            }
+            if (dto.getBladeCount() != null) {
+                rotavator.setBladeCount(dto.getBladeCount());
+            }
+        }
+
+        return machineryRepository.save(machinery);
     }
 
     /**
@@ -247,6 +286,7 @@ public class MachineryService {
     private void setCommonFields(Machinery machinery, MachineryRequestDTO dto, User owner) {
         machinery.setRentPerDay(dto.getRentPerDay());
         machinery.setOwner(owner);
+        machinery.setModelInfo(dto.getModel());
         machinery.setRemarks(dto.getRemarks());
         machinery.setStatus(dto.getStatus());
         machinery.setFarmLocation(farmRepository.findById(dto.getFarmId())

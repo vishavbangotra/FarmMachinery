@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,11 @@ import {
   Dimensions,
   ActivityIndicator,
 } from "react-native";
+import {
+  useFonts,
+  RobotoCondensed_300Light,
+} from "@expo-google-fonts/roboto-condensed";
+import * as SplashScreen from "expo-splash-screen";
 import * as CONSTANTS from "../constants/styles";
 import { AuthContext } from "../context/AuthContext";
 import { useContext } from "react";
@@ -19,6 +24,9 @@ const OTP_BOX_WIDTH = width * 0.12;
 const API_BASE_URL = "http://10.0.2.2:8080/auth";
 
 const LoginScreen = ({ navigation }) => {
+  let [fontsLoaded] = useFonts({
+    RobotoCondensed_300Light,
+  });
   const [countryCode, setCountryCode] = useState("+91");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -27,6 +35,16 @@ const LoginScreen = ({ navigation }) => {
   const otpInputs = useRef([]);
 
   const { setIsAuthenticated } = useContext(AuthContext);
+
+  useEffect(() => {
+    SplashScreen.preventAutoHideAsync();
+  }, []);
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
 
   const handleSendOtp = async () => {
     try {
@@ -82,7 +100,7 @@ const LoginScreen = ({ navigation }) => {
       if (data.success) {
         await SecureStore.setItemAsync("jwt", data.token);
         setIsAuthenticated(true);
-        if(data.IsNewUser){
+        if (data.IsNewUser) {
           navigation.navigate("Profile");
         }
       } else {
@@ -115,7 +133,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back!</Text>
+      <Text style={styles.title}>Farm Machinery</Text>
       <Text style={styles.subtitle}>Please sign in to continue</Text>
 
       {!isOtpSent ? (
@@ -202,6 +220,7 @@ const LoginScreen = ({ navigation }) => {
   );
 };
 
+// Styles remain unchanged
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -211,9 +230,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
-    fontSize: 32,
-    fontFamily: CONSTANTS.FONTS.BOLD,
-    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    fontSize: 38,
+    fontFamily: "RobotoCondensed_300Light",
+    color: CONSTANTS.COLORS.TEXT_DARK,
     marginBottom: 8,
   },
   subtitle: {
@@ -236,6 +255,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     fontSize: 16,
+    fontWeight: "500",
     color: CONSTANTS.COLORS.TEXT_DARK,
   },
   countryCode: {
@@ -258,7 +278,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: CONSTANTS.COLORS.BACKGROUND,
     fontSize: 16,
-    fontFamily: CONSTANTS.FONTS.SEMIBOLD,
+    fontWeight: "500",
   },
   otpContainer: {
     flexDirection: "row",
@@ -280,20 +300,20 @@ const styles = StyleSheet.create({
   otpTitle: {
     fontSize: 20,
     fontFamily: CONSTANTS.FONTS.BOLD,
-    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    color: CONSTANTS.COLORS.TEXT_DARK,
     marginBottom: 8,
   },
   otpSubtitle: {
     fontSize: 14,
     fontFamily: CONSTANTS.FONTS.REGULAR,
-    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    color: CONSTANTS.COLORS.TEXT_DARK,
     marginBottom: 32,
   },
   resendContainer: {
     marginTop: 16,
   },
   resendText: {
-    color: CONSTANTS.COLORS.TEXT_LIGHT,
+    color: CONSTANTS.COLORS.TEXT_DARK,
     fontFamily: CONSTANTS.FONTS.REGULAR,
   },
   resendLink: {
