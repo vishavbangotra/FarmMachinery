@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { COLORS } from "../constants/styles";
-import { userService } from "../services/authService";
+import { userService } from "../services/userService";
 
 const ProfileScreen = () => {
   const [name, setName] = useState("");

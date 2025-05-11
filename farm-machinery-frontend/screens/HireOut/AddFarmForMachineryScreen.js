@@ -18,6 +18,7 @@ import { BottomSheet } from "react-native-btr";
 import * as Haptics from "expo-haptics";
 import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
+import { machineryService } from "../../services/machineryService";
 import { farmService } from "../../services/farmService";
 
 // App constants
@@ -97,25 +98,14 @@ const SelectFarmForMachinery = ({ navigation, route }) => {
         throw new Error("User ID is not defined");
       }
       const response = await fetch(`http://10.0.2.2:8080/api/machinery/add`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+        const machineryData = {
           type: route.params.machineryTitle.toUpperCase(),
           farmId,
           ownerId: userId,
           ...machineryDetails,
-        }),
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Error adding machinery: ${response.status} - ${errorText}`
-        );
-      }
-      const data = await response.json();
-      navigation.navigate("ManageMachinery", { machinery: data });
+        };
+        await machineryService.addMachinery(machineryData);
+      navigation.navigate("ManageMachinery", { farm: selectedFarm });
     } catch (error) {
       console.error("Error adding machinery:", error.message);
     } finally {

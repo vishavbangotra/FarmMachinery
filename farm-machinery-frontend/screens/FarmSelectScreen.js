@@ -18,10 +18,11 @@ import { BottomSheet } from "react-native-btr";
 import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
-import axios from "axios";
 
 import { COLORS, SIZES, FONTS } from "../constants/styles";
+import { locationService } from "../services/locationService";
 import { farmService } from "../services/farmService";
+import { machineryService } from "../services/machineryService";
 
 const API_BASE_URL = "http://10.0.2.2:8080";
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -160,22 +161,9 @@ const FarmSelectScreen = ({ route, navigation }) => {
     }
   };
 
-  const deleteFarmRequest = async () => {
+ const deleteFarmRequest = async (farmId) => {
     try {
-      const authToken = await SecureStore.getItemAsync("jwt");
-      if (!authToken) throw new Error("No authentication token found");
-      const response = await fetch(
-        `${API_BASE_URL}/api/farms/delete/${farmToDelete}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authToken}`,
-          },
-        }
-      );
-      if (!response.ok)
-        throw new Error(`Error deleting farm: ${response.status}`);
+ await farmService.deleteFarm(farmId);
     } catch (error) {
       console.error("Error deleting farm:", error);
     }
@@ -189,7 +177,7 @@ const FarmSelectScreen = ({ route, navigation }) => {
   const confirmDeleteFarm = async () => {
     if (farmToDelete) {
       try {
-        await deleteFarmRequest();
+ await deleteFarmRequest(farmToDelete);
         setFarms(farms.filter((farm) => farm.id !== farmToDelete));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setShowDeleteConfirm(false);
@@ -230,27 +218,18 @@ const FarmSelectScreen = ({ route, navigation }) => {
     try {
       const authToken = await SecureStore.getItemAsync("jwt");
       if (!authToken) throw new Error("No authentication token found");
-      const type = route.params.machineryTitle.toUpperCase();
-      const farmId = selectedFarm.id;
-      const details = route.params.machineryDetails;
+
+      const machineryData = {
+        type: route.params.machineryTitle.toUpperCase(),
+        farmId: selectedFarm.id,
+ ...route.params.machineryDetails, // Spread existing details
+      };
       const imageUris = route.params.images || [];
-      const formData = new FormData();
-      formData.append("type", type);
-      formData.append("farmId", String(farmId));
-      Object.entries(details).forEach(([key, value]) => {
-        formData.append(key, value == null ? "" : String(value));
-      });
-      imageUris.forEach((uri, idx) => {
-        const filename = uri.split("/").pop();
-        const match = /\.(\w+)$/.exec(filename ?? "");
-        const mimeType = match ? `image/${match[1]}` : "image";
-        formData.append("files", {
-          uri,
-          name: filename,
-          type: mimeType,
-        });
-      });
-      const res = await fetch(`${API_BASE_URL}/api/machinery/add`, {
+
+      // Use the machineryService to add the machinery
+      const res = await machineryService.addMachinery(
+        machineryData,
+        imageUris,
         method: "POST",
         headers: {
           Authorization: `Bearer ${authToken}`,
@@ -258,10 +237,14 @@ const FarmSelectScreen = ({ route, navigation }) => {
         body: formData,
       });
       if (!res.ok) {
+      const response = await machineryService.addMachinery(machineryData, imageUris, authToken);
+
+      if (response.success) {
+        navigation.navigate("ManageMachinery");
+      } else {
         const errText = await res.text();
-        throw new Error(`Error adding machinery: ${res.status} – ${errText}`);
+ throw new Error(`Error adding machinery: ${response.message}`);
       }
-      navigation.navigate("ManageMachinery");
     } catch (e) {
       console.error("Error adding machinery:", e);
     } finally {

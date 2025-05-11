@@ -13,28 +13,29 @@ class MachineryService {
     return apiService.get(`/api/machinery/search?type=${type}&lon=${lon}&lat=${lat}&distance=${distance}`);
   }
 
-  async addMachinery(machineryData, files = []) {
+  async addMachinery(machineryData, imageUris = [], authToken ) {
     const formData = new FormData();
-    
+
     // Add machinery data
     Object.keys(machineryData).forEach(key => {
-      formData.append(key, machineryData[key]);
-    });
-    
-    // Add files if any
-    files.forEach(file => {
-      const filename = file.uri.split('/').pop();
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image';
-      
-      formData.append('files', {
-        uri: file.uri,
-        name: filename,
-        type
+      if (machineryData[key] != null) {
+      formData.append(key, String(machineryData[key]));
+            }
+          });
+
+          // Add files if any
+      imageUris.forEach((uri, idx) => {
+        const filename = uri.split('/').pop();
+        const match = /\.(\w+)$/.exec(filename ?? '');
+        const mimeType = match ? `image/${match[1]}` : 'image';
+          formData.append('files', {
+            uri,
+            name: filename,
+            type: mimeType,
+          });
       });
-    });
-    
-    return apiService.postFormData('/api/machinery/add', formData);
+
+ return apiService.postFormData('/api/machinery/add', formData, authToken);
   }
 
   async updateMachinery(id, updateData) {
