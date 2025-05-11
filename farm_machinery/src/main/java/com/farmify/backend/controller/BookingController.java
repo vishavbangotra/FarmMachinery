@@ -3,6 +3,8 @@ package com.farmify.backend.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import com.farmify.backend.dto.ApiResponse;
@@ -23,6 +25,9 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Controller for managing bookings, including creation, update, deletion, and queries.
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/bookings")
@@ -32,11 +37,14 @@ public class BookingController {
     private final BookingService bookingService;
     private final JwtService jwtService;
 
+    /**
+     * Creates a new booking for the authenticated user.
+     */
     @PostMapping("/create")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Booking>> createBooking(@Valid @RequestBody BookingRequest request,
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        logger.info("Creating booking for machineryId={}, requesterId={}", request.getMachineryId(), request.getRequesterId());
+        logger.info("Creating booking for machineryId={}", request.getMachineryId());
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             logger.warn("Unauthorized booking creation attempt");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -50,64 +58,94 @@ public class BookingController {
                 .body(new ApiResponse<>(true, "Booking created successfully", booking));
     }
 
+    /**
+     * Fetches a booking by its ID.
+     */
     @GetMapping("/{id}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Booking>> getBookingById(@PathVariable Long id) {
         logger.info("Fetching booking with id={}", id);
         Booking booking = bookingService.getBookingById(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Booking fetched successfully", booking));
     }
 
+    /**
+     * Fetches all bookings for the authenticated owner.
+     */
     @GetMapping
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<ApiResponse<List<BookingOwnerDTO>>> getAllBookingsByOwner() {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<BookingOwnerDTO>>> getAllBookingsByOwner(
+            @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Fetching all bookings for owner");
-        List<BookingOwnerDTO> bookings = bookingService.getAllBookingsByOwner(1L);
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(false, "Unauthorized", null));
+        }
+        Long ownerId = jwtService.extractUserIdFromPrincipal(userDetails);
+        List<BookingOwnerDTO> bookings = bookingService.getAllBookingsByOwner(ownerId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Bookings fetched successfully", bookings));
     }
 
+    /**
+     * Updates the status of a booking.
+     */
     @PutMapping("/{id}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> updateBooking(@Valid @RequestBody BookingStatusDTO dto, @PathVariable Long id) {
-        logger.info("Updating booking status for id={} to {}", id, dto.getStatus());
+        logger.info("Updating booking status for id={}", id);
         bookingService.updateBookingStatus(id, dto.getStatus());
         return ResponseEntity.ok(new ApiResponse<>(true, "Booking status updated", null));
     }
 
+    /**
+     * Deletes a booking by its ID.
+     */
     @DeleteMapping("/{id}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> deleteBooking(@PathVariable Long id) {
         logger.info("Deleting booking with id={}", id);
         bookingService.deleteBooking(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Booking deleted", null));
     }
 
+    /**
+     * Fetches bookings by requester ID.
+     */
     @GetMapping("/user/{userId}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<Booking>>> getBookingsByRequesterId(@PathVariable Long userId) {
         logger.info("Fetching bookings for requesterId={}", userId);
         List<Booking> bookings = bookingService.getBookingsByRequesterId(userId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Bookings fetched successfully", bookings));
     }
 
+    /**
+     * Fetches bookings by machinery ID.
+     */
     @GetMapping("/machinery/{machineryId}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<Booking>>> getBookingsByMachineryId(@PathVariable Long machineryId) {
         logger.info("Fetching bookings for machineryId={}", machineryId);
         List<Booking> bookings = bookingService.getBookingsByMachineryId(machineryId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Bookings fetched successfully", bookings));
     }
 
+    /**
+     * Fetches bookings by status.
+     */
     @GetMapping("/status")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<Booking>>> getBookingsByStatus(@RequestParam BookingStatus status) {
         logger.info("Fetching bookings with status={}", status);
         List<Booking> bookings = bookingService.getBookingsByStatus(status);
         return ResponseEntity.ok(new ApiResponse<>(true, "Bookings fetched successfully", bookings));
     }
 
+    /**
+     * Fetches bookings within a date range.
+     */
     @GetMapping("/date-range")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<List<Booking>>> getBookingsByDateRange(
             @RequestParam LocalDate start,
             @RequestParam LocalDate end) {

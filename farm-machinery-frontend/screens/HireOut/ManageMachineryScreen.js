@@ -69,7 +69,8 @@ const ManageMachineryScreen = () => {
         );
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
+      const data = responseData.data;
       setMachineries(Array.isArray(data) ? data : []);
       console.log("Machineries fetched:", data.length);
     } catch (error) {

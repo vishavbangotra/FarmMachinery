@@ -18,6 +18,7 @@ import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 import { MaterialIcons } from "@expo/vector-icons";
 import { COLORS, SIZES, FONTS } from "../../constants/styles";
+import * as SecureStore from "expo-secure-store";
 
 // Assuming API_URL is defined in an environment config file
 const API_URL = process.env.API_URL || "http://10.0.2.2:8080";
@@ -221,9 +222,21 @@ const BookingListScreen = () => {
     const fetchBookings = async () => {
       try {
         setIsFetchingBookings(true);
-        const response = await fetch(`${API_URL}/api/bookings`);
+        console.log("Fetching bookings...");
+        const token = await SecureStore.getItemAsync("jwt");
+        if (!token) throw new Error("No authentication token found");
+        const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok){
+          console.log("Fetching bookings failed...");
+          throw new Error(`Failed to fetch bookings: ${response.status}`);
+        }
         const data = await response.json();
-        setBookings(data);
+        console.log("Fetched bookings:", data);
+        setBookings(data.data);
         setIsFetchingBookings(false);
       } catch (error) {
         setBookingsError("Failed to fetch bookings");
@@ -307,9 +320,17 @@ const BookingListScreen = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const response = await fetch(`${API_URL}/api/bookings`);
+      const token = await SecureStore.getItemAsync("jwt");
+      if (!token) throw new Error("No authentication token found");
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok)
+        throw new Error(`Failed to fetch bookings: ${response.status}`);
       const data = await response.json();
-      setBookings(data);
+      setBookings(data.data);
     } catch (error) {
       console.error("Error refreshing bookings:", error);
     } finally {

@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -59,5 +60,19 @@ public class JwtService {
 
     public String extractPhoneNumber(String token) {
         return validateToken(token).get("phoneNumber", String.class);
+    }
+
+    /**
+     * Extract the userId from a UserDetails principal.
+     * Assumes the username is the userId as a string, or adjust as needed for your implementation.
+     */
+    public Long extractUserIdFromPrincipal(UserDetails userDetails) {
+        // If your UserDetails stores the userId as username, parse it:
+        try {
+            return Long.valueOf(userDetails.getUsername());
+        } catch (NumberFormatException e) {
+            // If username is not userId, you should implement a custom UserDetails with getId()
+            throw new IllegalArgumentException("UserDetails does not contain a valid userId as username");
+        }
     }
 }

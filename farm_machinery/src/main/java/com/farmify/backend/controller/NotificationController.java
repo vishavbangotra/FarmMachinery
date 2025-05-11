@@ -24,21 +24,4 @@ public class NotificationController {
 
     @Autowired
     private UserRepository userRepository;
-
-    @PostMapping("/store-token")
-    public ResponseEntity<ApiResponse<String>> storeToken(@RequestBody Map<String, String> request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        String pushToken = request.get("pushToken");
-        logger.info("Storing push token for user: {}", userDetails.getUsername());
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        if (!user.getPushTokens().stream().anyMatch(t -> t.getToken().equals(pushToken))) {
-            user.addPushToken(pushToken);
-            userRepository.save(user);
-            logger.info("Push token added for user: {}", userDetails.getUsername());
-        } else {
-            logger.info("Push token already exists for user: {}", userDetails.getUsername());
-        }
-        return ResponseEntity.ok(new ApiResponse<>(true, "Token stored successfully", null));
-    }
 }
