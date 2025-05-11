@@ -34,6 +34,16 @@ export default {
     web: {
       favicon: "./assets/favicon.png",
     },
-    plugins: ["expo-secure-store", "expo-font"],
+    plugins: [
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-location",
+        {
+          locationAlwaysAndWhenInUsePermission:
+            "Allow $(PRODUCT_NAME) to use your location.",
+        },
+      ],
+    ],
   },
 };

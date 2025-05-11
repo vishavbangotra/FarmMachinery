@@ -78,6 +78,7 @@ public class MachineryService {
                     result.setModel(m.getModelInfo() != null ? m.getModelInfo() : "");
                     result.setRemarks(m.getRemarks());
                     result.setImageUrls(machineryImageService.listImageUrls(m.getId()));
+                    result.setMachineryId(m.getId());
                     return result;
                 })
                 .collect(Collectors.toList());
@@ -285,6 +286,7 @@ public class MachineryService {
     private void setCommonFields(Machinery machinery, MachineryRequestDTO dto, User owner) {
         machinery.setRentPerDay(dto.getRentPerDay());
         machinery.setOwner(owner);
+        machinery.setModelInfo(dto.getModel());
         machinery.setRemarks(dto.getRemarks());
         machinery.setStatus(dto.getStatus());
         machinery.setFarmLocation(farmRepository.findById(dto.getFarmId())
