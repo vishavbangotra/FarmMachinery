@@ -46,9 +46,10 @@ public class FarmController {
             logger.info("Farm created with id={}", createdFarm.getId());
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponse<>(true, "Farm created successfully", createdFarm.getId()));
-        } catch (Exception e) {
-            logger.error("Error creating farm: {}", e.getMessage(), e);
-            throw e;
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid farm creation request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
         }
     }
 
@@ -83,9 +84,15 @@ public class FarmController {
     public ResponseEntity<ApiResponse<Void>> deleteFarm(@PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Attempting to delete farm with id={}", id);
-        // Optionally, check if the user owns the farm before deleting
-        farmService.deleteFarm(id);
-        logger.info("Farm deleted with id={}", id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Farm deleted", null));
+        try {
+            // Optionally, check if the user owns the farm before deleting
+            farmService.deleteFarm(id);
+            logger.info("Farm deleted with id={}", id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Farm deleted", null));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Farm not found or could not be deleted with id={}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, "Farm not found or could not be deleted", null));
+        }
     }
 }

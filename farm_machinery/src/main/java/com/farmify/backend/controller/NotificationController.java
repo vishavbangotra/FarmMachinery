@@ -32,7 +32,13 @@ public class NotificationController {
             @RequestBody Map<String, Object> payload,
             @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Sending notification for userId={}", userDetails.getUsername());
-        // Notification logic here (stub)
-        return ResponseEntity.ok(new ApiResponse<>(true, "Notification sent", null));
+        try {
+            // Notification logic here (stub)
+            // If notification fails, throw new RuntimeException("Notification failed");
+            return ResponseEntity.ok(new ApiResponse<>(true, "Notification sent", null));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Notification failed for userId={}: {}", userDetails.getUsername(), e.getMessage());
+            return ResponseEntity.status(400).body(new ApiResponse<>(false, e.getMessage(), null));
+        }
     }
 }

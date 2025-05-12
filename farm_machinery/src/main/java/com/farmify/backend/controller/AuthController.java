@@ -42,10 +42,6 @@ public class AuthController {
             logger.error("Twilio API error while sending OTP to {}: {}", request.getPhoneNumber(), e.getMessage());
             OtpResponse otpResponse = new OtpResponse(false, "Twilio API error: " + e.getMessage(), null);
             return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Twilio API error", otpResponse));
-        } catch (Exception e) {
-            logger.error("Unexpected error while sending OTP to {}: {}", request.getPhoneNumber(), e.getMessage());
-            OtpResponse otpResponse = new OtpResponse(false, "Unexpected error: " + e.getMessage(), null);
-            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Unexpected error", otpResponse));
         }
     }
 
@@ -75,10 +71,6 @@ public class AuthController {
             logger.error("Twilio API error while verifying OTP for {}: {}", request.getPhoneNumber(), e.getMessage());
             OtpResponse otpResponse = new OtpResponse(false, "Twilio API error: " + e.getMessage(), null);
             return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Twilio API error", otpResponse));
-        } catch (Exception e) {
-            logger.error("Unexpected error while verifying OTP for {}: {}", request.getPhoneNumber(), e.getMessage());
-            OtpResponse otpResponse = new OtpResponse(false, "Unexpected error: " + e.getMessage(), null);
-            return ResponseEntity.badRequest().body(new ApiResponse<>(false, "Unexpected error", otpResponse));
         }
     }
 }

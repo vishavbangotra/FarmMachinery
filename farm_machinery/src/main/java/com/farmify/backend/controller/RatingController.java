@@ -29,17 +29,27 @@ public class RatingController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Rating>> createOrUpdate(@RequestBody Rating rating, @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Creating or updating rating for machineryId={}, userId={}", rating.getMachinery().getId(), userDetails.getUsername());
-        Rating saved = ratingService.createOrUpdateRating(rating);
-        logger.info("Rating saved with id={}", saved.getId());
-        return ResponseEntity.status(201).body(new ApiResponse<>(true, "Rating saved successfully", saved));
+        try {
+            Rating saved = ratingService.createOrUpdateRating(rating);
+            logger.info("Rating saved with id={}", saved.getId());
+            return ResponseEntity.status(201).body(new ApiResponse<>(true, "Rating saved successfully", saved));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid rating request: {}", e.getMessage());
+            return ResponseEntity.status(400).body(new ApiResponse<>(false, e.getMessage(), null));
+        }
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Rating>> getById(@PathVariable Long id) {
         logger.info("Fetching rating with id={}", id);
-        Rating rating = ratingService.getRatingById(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Rating fetched successfully", rating));
+        try {
+            Rating rating = ratingService.getRatingById(id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Rating fetched successfully", rating));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Rating not found with id={}: {}", id, e.getMessage());
+            return ResponseEntity.status(404).body(new ApiResponse<>(false, "Rating not found", null));
+        }
     }
 
     @GetMapping
@@ -54,9 +64,14 @@ public class RatingController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         logger.info("Deleting rating with id={}", id);
-        ratingService.deleteRating(id);
-        logger.info("Rating deleted with id={}", id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Rating deleted", null));
+        try {
+            ratingService.deleteRating(id);
+            logger.info("Rating deleted with id={}", id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Rating deleted", null));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Rating not found or could not be deleted with id={}: {}", id, e.getMessage());
+            return ResponseEntity.status(404).body(new ApiResponse<>(false, "Rating not found or could not be deleted", null));
+        }
     }
 
     @GetMapping("/machinery/{machineryId}/average")

@@ -82,8 +82,14 @@ public class MachineryController {
             @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Fetching all machineries for authenticated user");
         Long ownerId = jwtService.extractUserIdFromPrincipal(userDetails);
-        ArrayList<MachineryDTO> machineryList = machineryService.getAllMachineryByOwnerId(ownerId);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Machineries fetched successfully", machineryList));
+        try {
+            ArrayList<MachineryDTO> machineryList = machineryService.getAllMachineryByOwnerId(ownerId);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Machineries fetched successfully", machineryList));
+        } catch (Exception e) {
+            logger.error("Error fetching machineries for user {}: {}", ownerId, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, "Failed to fetch machineries", null));
+        }
     }
 
     @PutMapping(value = "/update/{id}")
@@ -129,7 +135,17 @@ public class MachineryController {
     @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<Machinery>> getMachineryById(@PathVariable Long id) {
         logger.info("Fetching machinery with id={}", id);
-        Machinery machinery = machineryService.getMachineryById(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Machinery fetched successfully", machinery));
+        try {
+            Machinery machinery = machineryService.getMachineryById(id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Machinery fetched successfully", machinery));
+        } catch (EntityNotFoundException e) {
+            logger.warn("Machinery not found with id={}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, "Machinery not found", null));
+        } catch (Exception e) {
+            logger.error("Error fetching machinery with id={}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ApiResponse<>(false, "Failed to fetch machinery", null));
+        }
     }
 }

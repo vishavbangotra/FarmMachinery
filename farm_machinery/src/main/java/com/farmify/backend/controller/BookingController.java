@@ -46,10 +46,16 @@ public class BookingController {
             @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Creating booking for machineryId={}", request.getMachineryId());
         Long requesterId = jwtService.extractUserIdFromPrincipal(userDetails);
-        Booking booking = bookingService.createBooking(request, requesterId);
-        logger.info("Booking created with id={}", booking.getId());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Booking created successfully", booking));
+        try {
+            Booking booking = bookingService.createBooking(request, requesterId);
+            logger.info("Booking created with id={}", booking.getId());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new ApiResponse<>(true, "Booking created successfully", booking));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid booking request: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
     }
 
     /**
@@ -59,8 +65,14 @@ public class BookingController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Booking>> getBookingById(@PathVariable Long id) {
         logger.info("Fetching booking with id={}", id);
-        Booking booking = bookingService.getBookingById(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Booking fetched successfully", booking));
+        try {
+            Booking booking = bookingService.getBookingById(id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Booking fetched successfully", booking));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Booking not found with id={}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, "Booking not found", null));
+        }
     }
 
     /**
@@ -83,8 +95,14 @@ public class BookingController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> updateBooking(@Valid @RequestBody BookingStatusDTO dto, @PathVariable Long id) {
         logger.info("Updating booking status for id={}", id);
-        bookingService.updateBookingStatus(id, dto.getStatus());
-        return ResponseEntity.ok(new ApiResponse<>(true, "Booking status updated", null));
+        try {
+            bookingService.updateBookingStatus(id, dto.getStatus());
+            return ResponseEntity.ok(new ApiResponse<>(true, "Booking status updated", null));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid status update for booking id={}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ApiResponse<>(false, e.getMessage(), null));
+        }
     }
 
     /**
@@ -94,8 +112,15 @@ public class BookingController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> deleteBooking(@PathVariable Long id) {
         logger.info("Deleting booking with id={}", id);
-        bookingService.deleteBooking(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Booking deleted", null));
+        try {
+            bookingService.deleteBooking(id);
+            logger.info("Booking deleted with id={}", id);
+            return ResponseEntity.ok(new ApiResponse<>(true, "Booking deleted", null));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Booking not found or could not be deleted with id={}: {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ApiResponse<>(false, "Booking not found or could not be deleted", null));
+        }
     }
 
     /**
