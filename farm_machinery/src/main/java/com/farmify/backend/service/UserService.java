@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import org.springframework.stereotype.Service;
 
+import com.farmify.backend.exception.ResourceNotFoundException;
 import com.farmify.backend.model.User;
 import com.farmify.backend.repository.UserRepository;
 
@@ -25,33 +26,32 @@ public class UserService {
      * @param name New name
      */
     public void updateUser(String phoneNumber, String imageUrl, String name) {
-        User user = userRepository.findByPhoneNumber(phoneNumber).orElse(null);
-        if (user != null) {
-            user.setImageUrl(imageUrl);
-            user.setName(name);
-            userRepository.save(user);
-            log.info("Updated user {} with new image and name", phoneNumber);
-        } else {
-            log.warn("Attempted to update non-existent user with phone number {}", phoneNumber);
-        }
+        User user = userRepository.findByPhoneNumber(phoneNumber)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with phone number: " + phoneNumber));
+        user.setImageUrl(imageUrl);
+        user.setName(name);
+        userRepository.save(user);
+        log.info("Updated user {} with new image and name", phoneNumber);
     }
     
     /**
      * Finds a user by phone number.
      * @param phoneNumber User's phone number
-     * @return User or null if not found
+     * @return User
      */
     public User findByPhoneNumber(String phoneNumber) {
-        return userRepository.findByPhoneNumber(phoneNumber).orElse(null);
+        return userRepository.findByPhoneNumber(phoneNumber)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with phone number: " + phoneNumber));
     }
     
     /**
      * Finds a user by ID.
      * @param id User's ID
-     * @return User or null if not found
+     * @return User
      */
     public User findById(Long id) {
-        return userRepository.findById(id).orElse(null);
+        return userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
     }
     
     /**

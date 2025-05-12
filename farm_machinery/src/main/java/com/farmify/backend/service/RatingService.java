@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.farmify.backend.exception.ResourceNotFoundException;
 import com.farmify.backend.model.Rating;
 import com.farmify.backend.repository.RatingRepository;
 
@@ -47,7 +48,7 @@ public class RatingService {
      */
     public Rating getRatingById(Long id) {
         return ratingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Rating not found for id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Rating not found for id " + id));
     }
 
     /**
@@ -65,7 +66,7 @@ public class RatingService {
     public void deleteRating(Long id) {
         if (!ratingRepository.existsById(id)) {
             log.warn("Attempted to delete non-existent rating with id {}", id);
-            throw new RuntimeException("Rating not found for id " + id);
+            throw new ResourceNotFoundException("Rating not found for id " + id);
         }
         ratingRepository.deleteById(id);
         log.info("Deleted rating with id {}", id);

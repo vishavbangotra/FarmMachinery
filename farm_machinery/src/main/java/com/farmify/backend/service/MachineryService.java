@@ -14,6 +14,7 @@ import com.farmify.backend.dto.MachineryDTO;
 import com.farmify.backend.dto.MachineryRequestDTO;
 import com.farmify.backend.dto.MachinerySearchResultDTO;
 import com.farmify.backend.dto.UpdateMachineryDTO;
+import com.farmify.backend.exception.ResourceNotFoundException;
 import com.farmify.backend.model.Machinery;
 import com.farmify.backend.model.MachineryImage;
 import com.farmify.backend.model.MachineryStatus;
@@ -95,7 +96,7 @@ public class MachineryService {
     @Transactional
     public Machinery updateMachinery(Long id, UpdateMachineryDTO dto) {
         Machinery machinery = machineryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Machinery not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Machinery not found with id: " + id));
 
         log.info("Updating machinery with id {}: {}", id, dto);
 
@@ -135,7 +136,7 @@ public class MachineryService {
     @Transactional
     public void deleteMachinery(Long machineryId) {
         Machinery machinery = machineryRepository.findById(machineryId)
-                .orElseThrow(() -> new EntityNotFoundException("Machinery not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Machinery not found with id: " + machineryId));
         List<MachineryImage> images = machinery.getImages();
         for (MachineryImage image : images) {
             s3Service.deleteFile(image.getKey());
@@ -176,7 +177,7 @@ public class MachineryService {
     @Transactional
     public Machinery createMachinery(MachineryRequestDTO dto, List<MultipartFile> files) {
         User owner = userRepository.findById(dto.getOwnerId())
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getOwnerId()));
 
         Machinery machinery;
         switch (dto.getType()) {
@@ -205,7 +206,7 @@ public class MachineryService {
      */
     public Machinery getMachineryById(Long id) {
         return machineryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Machinery not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Machinery not found with id: " + id));
     }
 
     /**
@@ -215,7 +216,7 @@ public class MachineryService {
      */
     public ArrayList<MachineryDTO> getAllMachineryByOwnerId(Long ownerId) {
         User user = userRepository.findById(ownerId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + ownerId));
         ArrayList<MachineryDTO> machineryDTOs = new ArrayList<>();
         machineryRepository.findByOwner(user).forEach(m -> {
             MachineryDTO machineryDTO = new MachineryDTO();
@@ -307,7 +308,7 @@ public class MachineryService {
         machinery.setRemarks(dto.getRemarks());
         machinery.setStatus(dto.getStatus());
         machinery.setFarmLocation(farmRepository.findById(dto.getFarmId())
-                .orElseThrow(() -> new EntityNotFoundException("Farm not found")));
+                .orElseThrow(() -> new ResourceNotFoundException("Farm not found with id: " + dto.getFarmId())));
     }
 
     /**
