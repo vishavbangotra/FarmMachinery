@@ -43,15 +43,9 @@ public class BookingController {
     @PostMapping("/create")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Booking>> createBooking(@Valid @RequestBody BookingRequest request,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Creating booking for machineryId={}", request.getMachineryId());
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            logger.warn("Unauthorized booking creation attempt");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Unauthorized", null));
-        }
-        String token = authorizationHeader.substring("Bearer ".length()).trim();
-        Long requesterId = jwtService.extractUserId(token);
+        Long requesterId = jwtService.extractUserIdFromPrincipal(userDetails);
         Booking booking = bookingService.createBooking(request, requesterId);
         logger.info("Booking created with id={}", booking.getId());
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -77,10 +71,6 @@ public class BookingController {
     public ResponseEntity<ApiResponse<List<BookingOwnerDTO>>> getAllBookingsByOwner(
             @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Fetching all bookings for owner");
-        if (userDetails == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Unauthorized", null));
-        }
         Long ownerId = jwtService.extractUserIdFromPrincipal(userDetails);
         List<BookingOwnerDTO> bookings = bookingService.getAllBookingsByOwner(ownerId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Bookings fetched successfully", bookings));

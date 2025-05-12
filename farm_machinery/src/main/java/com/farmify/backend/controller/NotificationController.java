@@ -16,6 +16,7 @@ import com.farmify.backend.repository.UserRepository;
 import com.farmify.backend.dto.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api")
@@ -24,4 +25,14 @@ public class NotificationController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @PostMapping("/notifications/send")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<String>> sendNotification(
+            @RequestBody Map<String, Object> payload,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        logger.info("Sending notification for userId={}", userDetails.getUsername());
+        // Notification logic here (stub)
+        return ResponseEntity.ok(new ApiResponse<>(true, "Notification sent", null));
+    }
 }

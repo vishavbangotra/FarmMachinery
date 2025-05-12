@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import com.farmify.backend.dto.ApiResponse;
@@ -32,19 +34,13 @@ public class MachineryController {
     private final JwtService jwtService;
 
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Machinery>> addMachinery(
             @ModelAttribute MachineryRequestDTO machineryDto,
             @RequestPart(value = "files", required = false) List<MultipartFile> files,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        logger.info("Attempting to add machinery for ownerId={}", machineryDto.getOwnerId());
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            logger.warn("Unauthorized machinery creation attempt");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Unauthorized", null));
-        }
-        String token = authorizationHeader.substring("Bearer ".length()).trim();
-        Long userId = jwtService.extractUserId(token);
+            @AuthenticationPrincipal UserDetails userDetails) {
+        logger.info("Attempting to add machinery for authenticated user");
+        Long userId = jwtService.extractUserIdFromPrincipal(userDetails);
         machineryDto.setOwnerId(userId);
         try {
             Machinery createdMachinery = machineryService.createMachinery(machineryDto, files);
@@ -65,16 +61,12 @@ public class MachineryController {
     }
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> deleteMachinery(@PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Attempting to delete machinery with id={}", id);
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            logger.warn("Unauthorized machinery deletion attempt");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Unauthorized", null));
-        }
-        String token = authorizationHeader.substring("Bearer ".length()).trim();
-        if (!jwtService.extractUserId(token).equals(machineryService.getMachineryById(id).getOwner().getId())) {
+        Long userId = jwtService.extractUserIdFromPrincipal(userDetails);
+        if (!userId.equals(machineryService.getMachineryById(id).getOwner().getId())) {
             logger.warn("User not authorized to delete machinery with id={}", id);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ApiResponse<>(false, "Unauthorized", null));
@@ -85,34 +77,23 @@ public class MachineryController {
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<ArrayList<MachineryDTO>>> getAllMachineriesByOwner(
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        logger.info("Fetching all machineries for owner");
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            logger.warn("Unauthorized machinery fetch attempt");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Unauthorized", null));
-        }
-        String token = authorizationHeader.substring("Bearer ".length()).trim();
-        Long ownerId = jwtService.extractUserId(token);
+            @AuthenticationPrincipal UserDetails userDetails) {
+        logger.info("Fetching all machineries for authenticated user");
+        Long ownerId = jwtService.extractUserIdFromPrincipal(userDetails);
         ArrayList<MachineryDTO> machineryList = machineryService.getAllMachineryByOwnerId(ownerId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Machineries fetched successfully", machineryList));
     }
 
     @PutMapping(value = "/update/{id}")
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Machinery>> updateMachinery(
             @PathVariable Long id,
             @RequestBody UpdateMachineryDTO dto,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Attempting to update machinery with id={}", id);
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            logger.warn("Unauthorized machinery update attempt");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Unauthorized", null));
-        }
-        String token = authorizationHeader.substring("Bearer ".length()).trim();
-        Long userId = jwtService.extractUserId(token);
+        Long userId = jwtService.extractUserIdFromPrincipal(userDetails);
         try {
             Machinery machinery = machineryService.getMachineryById(id);
             if (!userId.equals(machinery.getOwner().getId())) {

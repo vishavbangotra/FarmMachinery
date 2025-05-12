@@ -46,6 +46,15 @@ public class UserService {
     }
     
     /**
+     * Finds a user by ID.
+     * @param id User's ID
+     * @return User or null if not found
+     */
+    public User findById(Long id) {
+        return userRepository.findById(id).orElse(null);
+    }
+    
+    /**
      * Creates a new user with the given phone number.
      * @param phoneNumber User's phone number
      * @return Created User

@@ -2,12 +2,14 @@ package com.farmify.backend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,26 +34,21 @@ public class FarmController {
     private final JwtService jwtService;
 
     @PostMapping("/add")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Long>> addFarm(
             @Valid @RequestBody FarmDTO farmDTO,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
-        logger.info("Attempting to add farm for ownerId={}", farmDTO.getOwnerId());
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            logger.warn("Unauthorized farm creation attempt");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Unauthorized", null));
-        }
-        String token = authorizationHeader.substring("Bearer ".length()).trim();
+            @AuthenticationPrincipal UserDetails userDetails) {
+        logger.info("Attempting to add farm for authenticated user");
+        Long userId = jwtService.extractUserIdFromPrincipal(userDetails);
+        farmDTO.setOwnerId(userId);
         try {
-            Long userId = jwtService.extractUserId(token);
-            farmDTO.setOwnerId(userId);
             Farm createdFarm = farmService.createFarm(farmDTO);
             logger.info("Farm created with id={}", createdFarm.getId());
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(new ApiResponse<>(true, "Farm created successfully", createdFarm.getId()));
         } catch (Exception e) {
             logger.error("Error creating farm: {}", e.getMessage(), e);
-            throw e; // Let global exception handler manage this
+            throw e;
         }
     }
 
@@ -62,10 +59,13 @@ public class FarmController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Farms fetched successfully", farms));
     }
 
-    @GetMapping("/user/{id}")
-    public ResponseEntity<ApiResponse<Iterable<Farm>>> getFarmsByUserId(@PathVariable Long id) {
-        logger.info("Fetching farms for userId={}", id);
-        Iterable<Farm> farms = farmService.getFarmsByUserId(id);
+    @GetMapping("/user")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Iterable<Farm>>> getFarmsByUserId(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        logger.info("Fetching farms for authenticated user");
+        Long userId = jwtService.extractUserIdFromPrincipal(userDetails);
+        Iterable<Farm> farms = farmService.getFarmsByUserId(userId);
         return ResponseEntity.ok(new ApiResponse<>(true, "Farms fetched successfully", farms));
     }
 
@@ -79,15 +79,11 @@ public class FarmController {
     }
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<Void>> deleteFarm(@PathVariable Long id,
-            @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         logger.info("Attempting to delete farm with id={}", id);
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            logger.warn("Unauthorized farm deletion attempt");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>(false, "Unauthorized", null));
-        }
-        String token = authorizationHeader.substring("Bearer ".length()).trim();
+        // Optionally, check if the user owns the farm before deleting
         farmService.deleteFarm(id);
         logger.info("Farm deleted with id={}", id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Farm deleted", null));
