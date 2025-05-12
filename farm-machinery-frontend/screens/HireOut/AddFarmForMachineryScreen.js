@@ -64,10 +64,10 @@ const SelectFarmForMachinery = ({ navigation, route }) => {
 
   const fetchFarms = async () => {
     try {
-      const data = await farmService.getFarmsByUser(userId);
-      setFarms(data);
-      if (data.length > 0 && !selectedFarm) {
-        setSelectedFarm(data[0]);
+      const farms = await farmService.getUserFarms();
+      setFarms(farms);
+      if (farms.length > 0 && !selectedFarm) {
+        setSelectedFarm(farms[0]);
       }
     } catch (error) {
       console.error("Error fetching farms:", error);
@@ -97,14 +97,13 @@ const SelectFarmForMachinery = ({ navigation, route }) => {
       if (!userId) {
         throw new Error("User ID is not defined");
       }
-      const response = await fetch(`http://10.0.2.2:8080/api/machinery/add`, {
-        const machineryData = {
-          type: route.params.machineryTitle.toUpperCase(),
-          farmId,
-          ownerId: userId,
-          ...machineryDetails,
-        };
-        await machineryService.addMachinery(machineryData);
+      const machineryData = {
+        type: route.params.machineryTitle.toUpperCase(),
+        farmId,
+        ownerId: userId,
+        ...machineryDetails,
+      };
+      await machineryService.addMachinery(machineryData);
       navigation.navigate("ManageMachinery", { farm: selectedFarm });
     } catch (error) {
       console.error("Error adding machinery:", error.message);

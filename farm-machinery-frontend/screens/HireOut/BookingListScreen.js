@@ -19,6 +19,7 @@ import * as Haptics from "expo-haptics";
 import { MaterialIcons } from "@expo/vector-icons";
 import { COLORS, SIZES, FONTS } from "../../constants/styles";
 import * as SecureStore from "expo-secure-store";
+import { bookingService } from "../../services/bookingService";
 
 // Assuming API_URL is defined in an environment config file
 const API_URL = process.env.API_URL || "http://10.0.2.2:8080";
@@ -222,24 +223,11 @@ const BookingListScreen = () => {
     const fetchBookings = async () => {
       try {
         setIsFetchingBookings(true);
-        console.log("Fetching bookings...");
-        const token = await SecureStore.getItemAsync("jwt");
-        if (!token) throw new Error("No authentication token found");
-        const response = await fetch(`${API_BASE_URL}/api/bookings`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!response.ok){
-          console.log("Fetching bookings failed...");
-          throw new Error(`Failed to fetch bookings: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Fetched bookings:", data);
-        setBookings(data.data);
+        const bookings = await bookingService.getAllBookings();
+        setBookings(bookings);
         setIsFetchingBookings(false);
       } catch (error) {
-        setBookingsError("Failed to fetch bookings");
+        setBookingsError(error.message || "Failed to fetch bookings");
         setIsFetchingBookings(false);
       }
     };
@@ -270,11 +258,7 @@ const BookingListScreen = () => {
 
   const handleStatusChange = async (newStatus) => {
     try {
-      await fetch(`${API_URL}/api/bookings/${selectedBooking.bookingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      await bookingService.updateBookingStatus(selectedBooking.bookingId, newStatus);
       setBookings((prev) =>
         prev.map((b) =>
           b.bookingId === selectedBooking.bookingId
@@ -320,17 +304,8 @@ const BookingListScreen = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const token = await SecureStore.getItemAsync("jwt");
-      if (!token) throw new Error("No authentication token found");
-      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok)
-        throw new Error(`Failed to fetch bookings: ${response.status}`);
-      const data = await response.json();
-      setBookings(data.data);
+      const bookings = await bookingService.getAllBookings();
+      setBookings(bookings);
     } catch (error) {
       console.error("Error refreshing bookings:", error);
     } finally {

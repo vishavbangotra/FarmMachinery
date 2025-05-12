@@ -23,6 +23,7 @@ import { COLORS, SIZES, FONTS } from "../constants/styles";
 import { locationService } from "../services/locationService";
 import { farmService } from "../services/farmService";
 import { machineryService } from "../services/machineryService";
+import { bookingService } from "../services/bookingService";
 
 const API_BASE_URL = "http://10.0.2.2:8080";
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -60,10 +61,8 @@ const FarmSelectScreen = ({ route, navigation }) => {
 
   const fetchFarms = async () => {
     try {
-      const data = await farmService.getFarmsByUser(1);
-      if (data.success) {
-        setFarms(data.data);
-      }
+      const farms = await farmService.getUserFarms();
+      setFarms(farms);
     } catch (error) {
       console.error("Error fetching farms:", error);
     }
@@ -161,14 +160,6 @@ const FarmSelectScreen = ({ route, navigation }) => {
     }
   };
 
- const deleteFarmRequest = async (farmId) => {
-    try {
- await farmService.deleteFarm(farmId);
-    } catch (error) {
-      console.error("Error deleting farm:", error);
-    }
-  };
-
   const handleDeleteFarm = (farmId) => {
     setFarmToDelete(farmId);
     setShowDeleteConfirm(true);
@@ -177,7 +168,7 @@ const FarmSelectScreen = ({ route, navigation }) => {
   const confirmDeleteFarm = async () => {
     if (farmToDelete) {
       try {
- await deleteFarmRequest(farmToDelete);
+        await farmService.deleteFarm(farmToDelete);
         setFarms(farms.filter((farm) => farm.id !== farmToDelete));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setShowDeleteConfirm(false);
@@ -216,35 +207,14 @@ const FarmSelectScreen = ({ route, navigation }) => {
   const handleAddMachinery = async () => {
     setIsSaving(true);
     try {
-      const authToken = await SecureStore.getItemAsync("jwt");
-      if (!authToken) throw new Error("No authentication token found");
-
       const machineryData = {
         type: route.params.machineryTitle.toUpperCase(),
         farmId: selectedFarm.id,
- ...route.params.machineryDetails, // Spread existing details
+        ...route.params.machineryDetails,
       };
       const imageUris = route.params.images || [];
-
-      // Use the machineryService to add the machinery
-      const res = await machineryService.addMachinery(
-        machineryData,
-        imageUris,
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: formData,
-      });
-      if (!res.ok) {
-      const response = await machineryService.addMachinery(machineryData, imageUris, authToken);
-
-      if (response.success) {
-        navigation.navigate("ManageMachinery");
-      } else {
-        const errText = await res.text();
- throw new Error(`Error adding machinery: ${response.message}`);
-      }
+      await machineryService.addMachinery(machineryData, imageUris);
+      navigation.navigate("ManageMachinery");
     } catch (e) {
       console.error("Error adding machinery:", e);
     } finally {
@@ -253,7 +223,7 @@ const FarmSelectScreen = ({ route, navigation }) => {
   };
 
   const fetchLocationSuggestions = async (query) => {
-    console.log(GOOGLE_PLACES_API_KEY)
+    console.log(GOOGLE_PLACES_API_KEY);
     if (query.length > 0) {
       try {
         const response = await axios.get(
