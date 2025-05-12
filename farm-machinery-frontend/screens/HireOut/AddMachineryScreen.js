@@ -101,9 +101,10 @@ const AddMachineryScreen = ({ navigation }) => {
   useEffect(() => {
     (async () => {
       if (Platform.OS !== "web") {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const { status } =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== "granted") {
-          Alert.alert("Sorry, we need camera roll permissions to make this work!");
+          alert("Sorry, we need camera roll permissions to make this work!");
         }
       }
     })();
@@ -131,14 +132,23 @@ const AddMachineryScreen = ({ navigation }) => {
       });
 
       if (!result.canceled) {
-        const images = result.assets.map((asset) => asset.uri);
-        setImages((prev) => ({
+        // Validate image size
+        for (const asset of result.assets) {
+          const response = await fetch(asset.uri);
+          const blob = await response.blob();
+          if (blob.size > 5 * 1024 * 1024) { // 5MB limit
+            Alert.alert("Error", "Each image must be less than 5MB");
+            return;
+          }
+        }
+
+        setImages(prev => ({
           ...prev,
-          [machineryType]: images,
+          [machineryType]: result.assets.map(asset => asset.uri)
         }));
       }
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error("Error picking images:", error);
       Alert.alert("Error", "Failed to pick images");
     }
   };
@@ -147,24 +157,16 @@ const AddMachineryScreen = ({ navigation }) => {
     const schema = machinerySchemas[machineryTitle];
     const machineryDetails = formValues[machineryId] || {};
 
-    const requiredFields = schema.filter((field) => field.isRequired);
-    const missingOrInvalidFields = requiredFields.filter((field) => {
+    const requiredFields = schema.filter(field => field.isRequired);
+    const missingFields = requiredFields.filter(field => {
       const value = machineryDetails[field.name];
-      if (value === undefined || value.toString().trim() === "") {
-        return true;
-      }
-      if (field.type === "number" && isNaN(value)) {
-        return true;
-      }
-      return false;
+      return value === undefined || value.toString().trim() === "";
     });
 
-    if (missingOrInvalidFields.length > 0) {
+    if (missingFields.length > 0) {
       Alert.alert(
-        "Error",
-        `Please fill in all required fields correctly: ${missingOrInvalidFields
-          .map((field) => field.label)
-          .join(", ")}`
+        "Missing Fields",
+        `Please fill in: ${missingFields.map(f => f.label).join(", ")}`
       );
       return false;
     }
@@ -175,16 +177,34 @@ const AddMachineryScreen = ({ navigation }) => {
   const handleSubmit = (machineryId, machineryTitle) => {
     if (!validateForm(machineryId, machineryTitle)) return;
 
-    const schema = machinerySchemas[machineryTitle];
     const machineryDetails = {};
+    const schema = machinerySchemas[machineryTitle];
 
     schema.forEach((field) => {
+      const value = formValues[machineryId]?.[field.name];
       if (field.type === "switch") {
-        machineryDetails[field.name] = formValues[machineryId]?.[field.name] || false;
+        machineryDetails[field.name] = value || false;
+      } else if (field.type === "number") {
+        machineryDetails[field.name] = value ? parseFloat(value) : 0;
       } else {
-        machineryDetails[field.name] = formValues[machineryId]?.[field.name] || "";
+        machineryDetails[field.name] = value || "";
       }
     });
+
+    // Validate required number fields
+    const numberFields = schema.filter(field => field.type === "number" && field.isRequired);
+    const invalidFields = numberFields.filter(field => {
+      const value = machineryDetails[field.name];
+      return isNaN(value) || value < 0;
+    });
+
+    if (invalidFields.length > 0) {
+      Alert.alert(
+        "Invalid Input",
+        `Please enter valid numbers for: ${invalidFields.map(f => f.label).join(", ")}`
+      );
+      return;
+    }
 
     navigation.navigate("Map", {
       machineryTitle,
@@ -349,9 +369,8 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: COLORS.PRIMARY,
     padding: SIZES.PADDING,
+    backgroundColor: COLORS.PRIMARY,
   },
   headerText: {
     flex: 1,

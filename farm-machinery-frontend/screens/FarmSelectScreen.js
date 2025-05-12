@@ -9,6 +9,7 @@ import {
   FlatList,
   ActivityIndicator,
   Animated,
+  Alert,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
@@ -18,12 +19,11 @@ import { BottomSheet } from "react-native-btr";
 import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics";
 import * as SecureStore from "expo-secure-store";
+import axios from "axios";
 
 import { COLORS, SIZES, FONTS } from "../constants/styles";
-import { locationService } from "../services/locationService";
 import { farmService } from "../services/farmService";
 import { machineryService } from "../services/machineryService";
-import { bookingService } from "../services/bookingService";
 
 const API_BASE_URL = "http://10.0.2.2:8080";
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -61,10 +61,21 @@ const FarmSelectScreen = ({ route, navigation }) => {
 
   const fetchFarms = async () => {
     try {
-      const farms = await farmService.getUserFarms();
-      setFarms(farms);
+      const fetchedFarms = await farmService.getUserFarms();
+      setFarms(fetchedFarms);
+
+      if (fetchedFarms.length > 0 && !selectedFarm) {
+        setSelectedFarm(fetchedFarms[0]);
+        setRegion({
+          latitude: fetchedFarms[0].latitude,
+          longitude: fetchedFarms[0].longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
     } catch (error) {
       console.error("Error fetching farms:", error);
+      Alert.alert("Error", error.message || "Failed to fetch farms");
     }
   };
 
@@ -108,11 +119,17 @@ const FarmSelectScreen = ({ route, navigation }) => {
 
   const handleAddFarm = async (farm) => {
     try {
-      const savedFarm = await farmService.addFarm(farm);
+      const savedFarm = await farmService.addFarm({
+        description: farm.description,
+        latitude: farm.latitude,
+        longitude: farm.longitude,
+      });
+
       setFarms((prevFarms) => [...prevFarms, savedFarm]);
       return savedFarm;
     } catch (error) {
-      console.error("Error in handleAddFarm:", error);
+      console.error("Error adding farm:", error);
+      Alert.alert("Error", error.message || "Failed to add farm");
       throw error;
     }
   };
@@ -160,6 +177,27 @@ const FarmSelectScreen = ({ route, navigation }) => {
     }
   };
 
+  const deleteFarmRequest = async () => {
+    try {
+      const authToken = await SecureStore.getItemAsync("jwt");
+      if (!authToken) throw new Error("No authentication token found");
+      const response = await fetch(
+        `${API_BASE_URL}/api/farms/delete/${farmToDelete}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      if (!response.ok)
+        throw new Error(`Error deleting farm: ${response.status}`);
+    } catch (error) {
+      console.error("Error deleting farm:", error);
+    }
+  };
+
   const handleDeleteFarm = (farmId) => {
     setFarmToDelete(farmId);
     setShowDeleteConfirm(true);
@@ -168,7 +206,7 @@ const FarmSelectScreen = ({ route, navigation }) => {
   const confirmDeleteFarm = async () => {
     if (farmToDelete) {
       try {
-        await farmService.deleteFarm(farmToDelete);
+        await deleteFarmRequest();
         setFarms(farms.filter((farm) => farm.id !== farmToDelete));
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setShowDeleteConfirm(false);
@@ -195,6 +233,11 @@ const FarmSelectScreen = ({ route, navigation }) => {
   };
 
   const handleSearchMachinery = () => {
+    if (!selectedFarm) {
+      Alert.alert("Error", "Please select a farm first");
+      return;
+    }
+
     navigation.navigate("MachinerySearch", {
       farm: selectedFarm,
       machinery: route.params.machinery,
@@ -205,6 +248,11 @@ const FarmSelectScreen = ({ route, navigation }) => {
   };
 
   const handleAddMachinery = async () => {
+    if (!selectedFarm) {
+      Alert.alert("Error", "Please select a farm first");
+      return;
+    }
+
     setIsSaving(true);
     try {
       const machineryData = {
@@ -212,11 +260,12 @@ const FarmSelectScreen = ({ route, navigation }) => {
         farmId: selectedFarm.id,
         ...route.params.machineryDetails,
       };
-      const imageUris = route.params.images || [];
-      await machineryService.addMachinery(machineryData, imageUris);
+
+      await machineryService.addMachinery(machineryData, route.params.images);
       navigation.navigate("ManageMachinery");
-    } catch (e) {
-      console.error("Error adding machinery:", e);
+    } catch (error) {
+      console.error("Error adding machinery:", error);
+      Alert.alert("Error", error.message || "Failed to add machinery");
     } finally {
       setIsSaving(false);
     }
@@ -526,7 +575,7 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 25,
     padding: 10,
     elevation: 3,

@@ -73,47 +73,15 @@ const ManageMachineryScreen = () => {
     );
   };
 
-  const handleSave = async () => {
-    if (isSaving) return;
-
-    const rentPerDay = parseFloat(tempModalRentPerDay);
-    if (isNaN(rentPerDay) || rentPerDay < 0) {
-      setValidationError("Rent per day must be a non-negative number.");
-      return;
-    }
-    setValidationError("");
-
-    if (selectedMachinery) {
-      const updates = {
-        status: tempModalStatus,
-        rentPerDay,
-        imageUrls: tempModalImageUrls,
-        remarks: tempModalRemark,
-      };
-
-      try {
-        const updatedMachinery = await machineryService.updateMachinery(selectedMachinery.id, updates);
-        if (updatedMachinery) {
-          updateMachineryLocalState(selectedMachinery.id, updatedMachinery);
-          setSuccessMessage("Machinery updated successfully.");
-          setSuccessModalVisible(true);
-          setModalVisible(false);
-        }
-      } catch (error) {
-        setErrorMessage(error.message);
-        setErrorModalVisible(true);
-      }
-    }
-  };
-
   const handlePickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      setErrorMessage("Permission to access camera roll is required!");
-      setErrorModalVisible(true);
-      return;
-    }
     try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        setErrorMessage("Permission to access camera roll is required!");
+        setErrorModalVisible(true);
+        return;
+      }
+
       const pickerResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -122,12 +90,68 @@ const ManageMachineryScreen = () => {
       });
 
       if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+        // Check if adding this image would exceed the limit
+        if (tempModalImageUrls.length >= 5) {
+          setErrorMessage("Maximum 5 images allowed");
+          setErrorModalVisible(true);
+          return;
+        }
+
         const newUri = pickerResult.assets[0].uri;
-        setTempModalImageUrls((prevUrls) => [...prevUrls, newUri]);
+        
+        // Check file size
+        try {
+          const response = await fetch(newUri);
+          const blob = await response.blob();
+          if (blob.size > 5 * 1024 * 1024) { // 5MB
+            setErrorMessage("Image file size must be less than 5MB");
+            setErrorModalVisible(true);
+            return;
+          }
+        } catch (error) {
+          console.error("Error checking file size:", error);
+          setErrorMessage("Failed to validate image file");
+          setErrorModalVisible(true);
+          return;
+        }
+
+        setTempModalImageUrls(prevUrls => [...prevUrls, newUri]);
       }
     } catch (error) {
       console.error("Image Picker Error:", error);
-      setErrorMessage("Could not pick image.");
+      setErrorMessage(error.message || "Could not pick image");
+      setErrorModalVisible(true);
+    }
+  };
+
+  const handleUpdateMachinery = async () => {
+    try {
+      const rentPerDay = parseFloat(tempModalRentPerDay);
+      if (isNaN(rentPerDay) || rentPerDay < 0) {
+        setValidationError("Rent per day must be a non-negative number.");
+        return;
+      }
+      setValidationError("");
+
+      if (selectedMachinery) {
+        const updates = {
+          status: tempModalStatus,
+          rentPerDay,
+          imageUrls: tempModalImageUrls,
+          remarks: tempModalRemark,
+        };
+
+        const updatedMachinery = await machineryService.updateMachinery(selectedMachinery.id, updates);
+        if (updatedMachinery) {
+          updateMachineryLocalState(selectedMachinery.id, updatedMachinery);
+          setSuccessMessage("Machinery updated successfully.");
+          setSuccessModalVisible(true);
+          setModalVisible(false);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating machinery:", error);
+      setErrorMessage(error.message || "Failed to update machinery");
       setErrorModalVisible(true);
     }
   };
@@ -424,7 +448,7 @@ const ManageMachineryScreen = () => {
                         styles.saveButton,
                         isSaving && styles.buttonDisabled,
                       ]}
-                      onPress={handleSave}
+                      onPress={handleUpdateMachinery}
                       disabled={isSaving}
                     >
                       {isSaving ? (
