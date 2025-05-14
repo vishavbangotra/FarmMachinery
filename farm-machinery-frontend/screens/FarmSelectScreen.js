@@ -46,6 +46,10 @@ const FarmSelectScreen = ({ route, navigation }) => {
   const mapRef = useRef(null);
   const fabScale = useRef(new Animated.Value(1)).current;
 
+  const isFromAddMachinery =
+    navigation.getState().routes[navigation.getState().routes.length - 2]
+      ?.name === "AddMachinery";
+
   useEffect(() => {
     if (farms.length > 0 && !selectedFarm) {
       const defaultFarm = farms[0];
@@ -400,19 +404,23 @@ const FarmSelectScreen = ({ route, navigation }) => {
               {selectedFarm.description}
             </Text>
           </View>
-          <Text style={styles.distanceHeader}>Search Radius</Text>
-          <Text style={styles.distanceText}>{distance} km</Text>
-          <Slider
-            style={styles.slider}
-            minimumValue={0}
-            maximumValue={100}
-            step={1}
-            value={distance}
-            onValueChange={setDistance}
-            minimumTrackTintColor={COLORS.PRIMARY}
-            maximumTrackTintColor={COLORS.BORDER}
-            thumbTintColor={COLORS.PRIMARY}
-          />
+          {!isFromAddMachinery && (
+            <>
+              <Text style={styles.distanceHeader}>Search Radius</Text>
+              <Text style={styles.distanceText}>{distance} km</Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={distance}
+                onValueChange={setDistance}
+                minimumTrackTintColor={COLORS.PRIMARY}
+                maximumTrackTintColor={COLORS.BORDER}
+                thumbTintColor={COLORS.PRIMARY}
+              />
+            </>
+          )}
         </View>
       )}
 
