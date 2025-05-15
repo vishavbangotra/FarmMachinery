@@ -49,10 +49,17 @@ export const COLORS = {
    * maintaining contrast while distinguishing less critical text.
    */
   TEXT_DARK: "#37520B",
+
+  /**
+   * Error: #CA0B00
+   * A vibrant red for error messages, warnings, or critical notifications,
+   * ensuring attention is drawn to important issues or user actions.
+   *  */
+  ERROR: "#CA0B00",
 };
 
 export const SIZES = {
-  TITLE: 32, // Font size for titles or main headings
+  TITLE: 18, // Font size for titles or main headings
   BUTTON_TEXT: 18, // Font size for button labels
   INFO_TEXT: 16, // Font size for informational text or captions
   INPUT_HEIGHT: 50, // Height for text inputs and interactive boxes
@@ -88,6 +95,35 @@ export const GLOBAL_STYLES = {
     color: COLORS.TERTIARY,
     marginBottom: SIZES.MARGIN_LARGE,
     textAlign: "center",
+  },
+  sectionHeader: {
+    fontSize: SIZES.TITLE,
+    fontFamily: FONTS.BOLD,
+    color: COLORS.TERTIARY,
+    marginVertical: SIZES.MARGIN_SMALL,
+    textAlign: "left",
+  },
+  machineIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.PRIMARY,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  machineIconSelected: {
+    backgroundColor: COLORS.ACCENT,
+  },
+  machineLabel: {
+    marginTop: SIZES.SPACING,
+    fontSize: SIZES.INFO_TEXT,
+    fontFamily: FONTS.REGULAR,
+    color: COLORS.TEXT_DARK,
+    textAlign: "center",
+  },
+  machineLabelSelected: {
+    color: COLORS.ACCENT,
+    fontFamily: FONTS.BOLD,
   },
   tile: {
     backgroundColor: COLORS.SECONDARY,
