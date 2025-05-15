@@ -1,564 +1,721 @@
-// screens/MachineryScreen.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  SafeAreaView,
   View,
-  Text,
-  Pressable,
   StyleSheet,
+  TextInput,
+  Modal,
+  Text,
+  TouchableOpacity,
   FlatList,
-  ScrollView,
-  StatusBar,
-  Image,
+  ActivityIndicator,
+  Animated,
+  Alert,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import MapView, { Marker } from "react-native-maps";
+import * as Location from "expo-location";
+import { FAB, Button as PaperButton } from "react-native-paper";
+import Icon from "react-native-vector-icons/FontAwesome";
+import { BottomSheet } from "react-native-btr";
+import Slider from "@react-native-community/slider";
 import * as Haptics from "expo-haptics";
-import { COLORS, SIZES, FONTS, GLOBAL_STYLES } from "../constants/styles";
+import * as SecureStore from "expo-secure-store";
+import axios from "axios";
+
+import { COLORS, SIZES, FONTS } from "../constants/styles";
+import { farmService } from "../services/farmService";
 import { machineryService } from "../services/machineryService";
 
-const MACHINES = [
-  {
-    id: "tractor",
-    label: "Tractor",
-    icon: "tractor",
-    description: "For field preparation and towing",
-  },
-  {
-    id: "rotavator",
-    label: "Rotavator",
-    icon: "hammer",
-    description: "For soil cultivation",
-  },
-  {
-    id: "harvester",
-    label: "Harvester",
-    icon: "crop-harvest",
-    description: "For crop collection",
-  },
-  {
-    id: "landleveller",
-    label: "Land Leveller",
-    icon: "land-plots",
-    description: "For field leveling",
-  },
-  {
-    id: "seeddrill",
-    label: "Seed Drill",
-    icon: "seed",
-    description: "For precise seed placement",
-  },
-];
+const API_BASE_URL = "http://10.0.2.2:8080";
+const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
-const OPERATIONS = [
-  {
-    id: "soil_preparation",
-    label: "Soil Preparation",
-    machines: ["tractor", "rotavator", "landleveller"],
-    icon: "shovel",
-  },
-  {
-    id: "planting",
-    label: "Planting",
-    machines: ["seeddrill"],
-    icon: "seed-outline",
-  },
-  {
-    id: "harvesting",
-    label: "Harvesting",
-    machines: ["harvester"],
-    icon: "corn",
-  },
-];
+const FarmSelectScreen = ({ route, navigation }) => {
+  const [farms, setFarms] = useState([]);
+  const [region, setRegion] = useState(null);
+  const [addingFarm, setAddingFarm] = useState(false);
+  const [tempLocation, setTempLocation] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [farmName, setFarmName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFarm, setSelectedFarm] = useState(null);
+  const [showFarmList, setShowFarmList] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [distance, setDistance] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [farmToDelete, setFarmToDelete] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
+  const mapRef = useRef(null);
+  const fabScale = useRef(new Animated.Value(1)).current;
 
-export default function MachineryScreen({ navigation }) {
-  const [selectedOperation, setSelectedOperation] = useState(OPERATIONS[0].id);
-  const [selectedId, setSelectedId] = useState(null);
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [showStart, setShowStart] = useState(false);
-  const [showEnd, setShowEnd] = useState(false);
-  const [dateError, setDateError] = useState(false);
+  const isFromAddMachinery =
+    navigation.getState().routes[navigation.getState().routes.length - 2]
+      ?.name === "AddMachinery";
 
-  const currentMachines = MACHINES.filter((m) =>
-    OPERATIONS.find((op) => op.id === selectedOperation).machines.includes(m.id)
-  );
-
-  const onSelectMachine = (id) => {
-    Haptics.selectionAsync();
-    setSelectedId(id);
-  };
-
-  const onChangeStart = (_, date) => {
-    setShowStart(false);
-    if (date) {
-      setStartDate(date);
-      validateDates(date, endDate);
+  useEffect(() => {
+    if (farms.length > 0 && !selectedFarm) {
+      const defaultFarm = farms[0];
+      setSelectedFarm(defaultFarm);
+      setRegion({
+        latitude: defaultFarm.latitude,
+        longitude: defaultFarm.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
     }
-  };
+  }, [farms, selectedFarm]);
 
-  const onChangeEnd = (_, date) => {
-    setShowEnd(false);
-    if (date) {
-      setEndDate(date);
-      validateDates(startDate, date);
-    }
-  };
+  const fetchFarms = async () => {
+    try {
+      const fetchedFarms = await farmService.getUserFarms();
+      setFarms(fetchedFarms);
 
-  const validateDates = (start, end) => {
-    if (start && end && end <= start) {
-      setDateError(true);
-    } else {
-      setDateError(false);
+      if (fetchedFarms.length > 0 && !selectedFarm) {
+        setSelectedFarm(fetchedFarms[0]);
+        setRegion({
+          latitude: fetchedFarms[0].latitude,
+          longitude: fetchedFarms[0].longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching farms:", error);
+      Alert.alert("Error", error.message || "Failed to fetch farms");
     }
   };
 
   useEffect(() => {
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-    setStartDate(yesterday);
-    setEndDate(today);
+    fetchFarms();
   }, []);
 
-  const validRange = startDate && endDate && endDate > startDate;
-  const canProceed = selectedId && validRange;
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("Permission to access location was denied");
+        return;
+      }
+      const location = await Location.getCurrentPositionAsync({});
+      if (farms.length === 0) {
+        setRegion({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+    })();
+  }, []);
 
-  const format = (d) => d.toLocaleDateString();
-
-  const renderMachineItem = ({ item }) => {
-    const selected = item.id === selectedId;
-    return (
-      <Pressable
-        style={[styles.machineCard, selected && styles.machineCardSelected]}
-        onPress={() => onSelectMachine(item.id)}
-        android_ripple={{ color: COLORS.PRIMARY + "33" }}
-        accessibilityRole="button"
-        accessibilityLabel={item.label}
-      >
-        <View
-          style={[
-            styles.machineIconContainer,
-            selected && styles.machineIconSelected,
-          ]}
-        >
-          <MaterialCommunityIcons
-            name={item.icon}
-            size={28}
-            color={selected ? COLORS.BACKGROUND : COLORS.TEXT_LIGHT}
-          />
-        </View>
-        <Text
-          style={[styles.machineLabel, selected && styles.machineLabelSelected]}
-        >
-          {item.label}
-        </Text>
-        <Text style={styles.machineDescription}>{item.description}</Text>
-      </Pressable>
+  const handleSelectFarm = (farm) => {
+    setSelectedFarm(farm);
+    setShowFarmList(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    mapRef.current?.animateToRegion(
+      {
+        latitude: farm.latitude,
+        longitude: farm.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      },
+      1000
     );
   };
 
-  const renderOperationItem = ({ item }) => {
-    const selected = item.id === selectedOperation;
-    return (
-      <Pressable
-        style={[styles.operationButton, selected && styles.operationSelected]}
-        onPress={() => {
-          setSelectedOperation(item.id);
-          setSelectedId(null);
-          Haptics.selectionAsync();
-        }}
-        accessibilityLabel={item.label}
-      >
-        <MaterialCommunityIcons
-          name={item.icon}
-          size={24}
-          color={selected ? COLORS.TEXT_DARK : COLORS.TEXT_LIGHT}
-          style={styles.operationIcon}
-        />
-        <Text
-          style={[
-            styles.operationText,
-            selected && styles.operationTextSelected,
-          ]}
-        >
-          {item.label}
-        </Text>
-      </Pressable>
+  const handleAddFarm = async (farm) => {
+    try {
+      const savedFarm = await farmService.addFarm({
+        description: farm.description,
+        latitude: farm.latitude,
+        longitude: farm.longitude,
+      });
+
+      setFarms((prevFarms) => [...prevFarms, savedFarm]);
+      return savedFarm;
+    } catch (error) {
+      console.error("Error adding farm:", error);
+      Alert.alert("Error", error.message || "Failed to add farm");
+      throw error;
+    }
+  };
+
+  const handleMapPress = (e) => {
+    if (addingFarm) {
+      setTempLocation(e.nativeEvent.coordinate);
+      setShowForm(true);
+    }
+  };
+
+  const handleLongPress = (e) => {
+    if (!addingFarm) {
+      setAddingFarm(true);
+      setTempLocation(e.nativeEvent.coordinate);
+      setShowForm(true);
+    }
+  };
+
+  const handleCancelAdd = () => {
+    setAddingFarm(false);
+    setTempLocation(null);
+    setShowForm(false);
+    setFarmName("");
+  };
+
+  const handleSaveFarm = async () => {
+    if (farmName && tempLocation) {
+      setIsSaving(true);
+      try {
+        const newFarm = {
+          description: farmName,
+          latitude: tempLocation.latitude,
+          longitude: tempLocation.longitude,
+        };
+        const savedFarm = await handleAddFarm(newFarm);
+        handleSelectFarm(savedFarm);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setIsSaving(false);
+        handleCancelAdd();
+      } catch (error) {
+        console.log("Error adding farm:", error);
+        setIsSaving(false);
+      }
+    }
+  };
+
+  const deleteFarmRequest = async () => {
+    try {
+      const authToken = await SecureStore.getItemAsync("jwt");
+      if (!authToken) throw new Error("No authentication token found");
+      const response = await fetch(
+        `${API_BASE_URL}/api/farms/delete/${farmToDelete}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+      if (!response.ok)
+        throw new Error(`Error deleting farm: ${response.status}`);
+    } catch (error) {
+      console.error("Error deleting farm:", error);
+    }
+  };
+
+  const handleDeleteFarm = (farmId) => {
+    setFarmToDelete(farmId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteFarm = async () => {
+    if (farmToDelete) {
+      try {
+        await deleteFarmRequest();
+        setFarms(farms.filter((farm) => farm.id !== farmToDelete));
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setShowDeleteConfirm(false);
+        setFarmToDelete(null);
+        if (selectedFarm?.id === farmToDelete) setSelectedFarm(null);
+      } catch (error) {
+        console.error("Error deleting farm:", error);
+      }
+    }
+  };
+
+  const animateFab = () => {
+    Animated.spring(fabScale, {
+      toValue: 1.1,
+      friction: 5,
+      useNativeDriver: true,
+    }).start(() =>
+      Animated.spring(fabScale, {
+        toValue: 1,
+        friction: 5,
+        useNativeDriver: true,
+      }).start()
     );
+  };
+
+  const handleSearchMachinery = () => {
+    if (!selectedFarm) {
+      Alert.alert("Error", "Please select a farm first");
+      return;
+    }
+
+    navigation.navigate("MachinerySearch", {
+      farm: selectedFarm,
+      machinery: route.params.machinery,
+      startDate: route.params.startDate,
+      endDate: route.params.endDate,
+      distance,
+    });
+  };
+
+  const handleAddMachinery = async () => {
+    if (!selectedFarm) {
+      Alert.alert("Error", "Please select a farm first");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const machineryData = {
+        type: route.params.machineryTitle.toUpperCase(),
+        farmId: selectedFarm.id,
+        ...route.params.machineryDetails,
+      };
+
+      await machineryService.addMachinery(machineryData, route.params.images);
+      navigation.navigate("ManageMachinery");
+    } catch (error) {
+      console.error("Error adding machinery:", error);
+      Alert.alert("Error", error.message || "Failed to add machinery");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const fetchLocationSuggestions = async (query) => {
+    console.log(GOOGLE_PLACES_API_KEY);
+    if (query.length > 0) {
+      try {
+        const response = await axios.get(
+          `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${query}&key=${GOOGLE_PLACES_API_KEY}`
+        );
+        if (response.data.predictions) {
+          setSuggestions(response.data.predictions);
+        }
+        console.log(response.data);
+      } catch (error) {
+        console.error("Error fetching location suggestions:", error);
+      }
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const handleSearchQueryChange = (query) => {
+    setSearchQuery(query);
+    fetchLocationSuggestions(query);
+  };
+
+  const handleSelectSuggestion = async (placeId) => {
+    try {
+      const response = await axios.get(
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${GOOGLE_PLACES_API_KEY}`
+      );
+      const { lat, lng } = response.data.result.geometry.location;
+      const newRegion = {
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setRegion(newRegion);
+      mapRef.current?.animateToRegion(newRegion, 1000);
+      setSuggestions([]);
+      setSearchQuery(response.data.result.name);
+    } catch (error) {
+      console.error("Error selecting location:", error);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor={COLORS.PRIMARY} barStyle="light-content" />
-
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Machinery Selection</Text>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>Date Range</Text>
-          <View style={styles.dateContainer}>
-            <Pressable
-              style={[styles.dateInput, dateError && styles.dateInputError]}
-              onPress={() => setShowStart(true)}
-            >
-              <MaterialCommunityIcons
-                name="calendar-start"
-                size={22}
-                color={COLORS.SECONDARY}
-              />
-              <Text style={styles.dateText}>
-                {startDate ? format(startDate) : "Select start date"}
-              </Text>
-            </Pressable>
-
-            <MaterialCommunityIcons
-              name="arrow-right"
-              size={24}
-              color={COLORS.SECONDARY}
-              style={styles.dateArrow}
-            />
-
-            <Pressable
-              style={[styles.dateInput, dateError && styles.dateInputError]}
-              onPress={() => setShowEnd(true)}
-            >
-              <MaterialCommunityIcons
-                name="calendar-end"
-                size={22}
-                color={COLORS.SECONDARY}
-              />
-              <Text style={styles.dateText}>
-                {endDate ? format(endDate) : "Select end date"}
-              </Text>
-            </Pressable>
-          </View>
-
-          {dateError && (
-            <View style={styles.errorContainer}>
-              <MaterialCommunityIcons
-                name="alert-circle"
-                size={18}
-                color={COLORS.ERROR}
-              />
-              <Text style={styles.errorText}>
-                End date must be after start date
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>Operation Type</Text>
-          <FlatList
-            data={OPERATIONS}
-            keyExtractor={(item) => item.id}
-            renderItem={renderOperationItem}
-            horizontal={true}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.operationsList}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>Available Machinery</Text>
-          <Text style={styles.sectionSubtext}>
-            Select the machinery you need for{" "}
-            {OPERATIONS.find(
-              (op) => op.id === selectedOperation
-            ).label.toLowerCase()}
-          </Text>
-
-          {currentMachines.length > 0 ? (
-            <View style={styles.machinesGrid}>
-              {currentMachines.map((item) => renderMachineItem({ item }))}
-            </View>
-          ) : (
-            <View style={styles.emptyState}>
-              <MaterialCommunityIcons
-                name="tractor-variant"
-                size={40}
-                color={COLORS.SECONDARY}
-              />
-              <Text style={styles.emptyStateText}>
-                No machinery available for this operation
-              </Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <Pressable
-          style={[styles.button, !canProceed && styles.buttonDisabled]}
-          onPress={() => {
-            if (canProceed) {
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
-              );
-              navigation.navigate("Map", {
-                machinery: selectedId,
-                startDate: startDate.toISOString(),
-                endDate: endDate.toISOString(),
-              });
-            } else {
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Warning
-              );
-            }
-          }}
-          disabled={!canProceed}
-          accessibilityLabel="Continue to map view"
+    <View style={styles.container}>
+      {region && (
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          initialRegion={region}
+          onPress={handleMapPress}
+          onLongPress={handleLongPress}
+          provider="google"
+          customMapStyle={mapStyle}
         >
-          <Text style={styles.buttonText}>Continue to Map</Text>
-          <MaterialCommunityIcons
-            name="arrow-right"
-            size={20}
-            color={COLORS.TEXT_LIGHT}
-          />
-        </Pressable>
+          {farms.map((farm) => (
+            <Marker
+              key={`${farm.id}-${
+                selectedFarm?.id === farm.id ? "selected" : "default"
+              }`}
+              coordinate={{
+                latitude: farm.latitude,
+                longitude: farm.longitude,
+              }}
+              title={farm.description}
+              onPress={() => handleSelectFarm(farm)}
+              pinColor={
+                selectedFarm?.id === farm.id ? COLORS.PRIMARY : COLORS.ACCENT
+              }
+            />
+          ))}
+          {tempLocation && (
+            <Marker
+              coordinate={tempLocation}
+              title="New Farm"
+              pinColor={COLORS.ACCENT}
+            />
+          )}
+        </MapView>
+      )}
+
+      <View style={styles.searchContainer}>
+        <Icon
+          name="search"
+          size={18}
+          color={COLORS.TEXT}
+          style={styles.searchIcon}
+        />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search locations..."
+          placeholderTextColor={COLORS.TEXT_DARK}
+          value={searchQuery}
+          onChangeText={handleSearchQueryChange}
+        />
       </View>
 
-      {showStart && (
-        <DateTimePicker
-          value={startDate || new Date()}
-          mode="date"
-          display="spinner"
-          onChange={onChangeStart}
-          maximumDate={new Date()}
-        />
+      {suggestions.length > 0 && (
+        <View style={styles.suggestionsContainer}>
+          <FlatList
+            data={suggestions}
+            keyExtractor={(item) => item.place_id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.suggestionItem}
+                onPress={() => handleSelectSuggestion(item.place_id)}
+              >
+                <Text style={styles.suggestionText}>{item.description}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
       )}
-      {showEnd && (
-        <DateTimePicker
-          value={endDate || new Date()}
-          mode="date"
-          display="spinner"
-          onChange={onChangeEnd}
-          minimumDate={startDate || undefined}
-        />
+
+      {selectedFarm && (
+        <View style={styles.topControlsContainer}>
+          <View style={styles.selectedFarmContainer}>
+            <Icon
+              name="check-circle"
+              size={20}
+              color={COLORS.PRIMARY}
+              style={styles.checkIcon}
+            />
+            <Text style={styles.selectedFarmText}>
+              {selectedFarm.description}
+            </Text>
+          </View>
+          {!isFromAddMachinery && (
+            <>
+              <Text style={styles.distanceHeader}>Search Radius</Text>
+              <Text style={styles.distanceText}>{distance} km</Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={distance}
+                onValueChange={setDistance}
+                minimumTrackTintColor={COLORS.PRIMARY}
+                maximumTrackTintColor={COLORS.BORDER}
+                thumbTintColor={COLORS.PRIMARY}
+              />
+            </>
+          )}
+        </View>
       )}
-    </SafeAreaView>
+
+      <View style={styles.controlsContainer}>
+        <Animated.View style={{ transform: [{ scale: fabScale }] }}>
+          <FAB
+            style={[styles.fab, { backgroundColor: COLORS.SECONDARY }]}
+            icon={addingFarm ? "close" : "plus"}
+            label={addingFarm ? "Cancel" : "Add Farm"}
+            onPress={() => {
+              animateFab();
+              addingFarm ? handleCancelAdd() : setAddingFarm(true);
+            }}
+          />
+        </Animated.View>
+        <FAB
+          style={[styles.fab, { backgroundColor: COLORS.SECONDARY }]}
+          icon="format-list-bulleted"
+          label="Farms"
+          onPress={() => setShowFarmList(true)}
+        />
+        {selectedFarm && (
+          <FAB
+            style={[styles.fab, { backgroundColor: COLORS.PRIMARY }]}
+            icon="arrow-right"
+            label={
+              navigation.getState().routes[
+                navigation.getState().routes.length - 2
+              ].name === "AddMachinery"
+                ? "Add"
+                : "Search"
+            }
+            onPress={() =>
+              navigation.getState().routes[
+                navigation.getState().routes.length - 2
+              ].name === "AddMachinery"
+                ? handleAddMachinery()
+                : handleSearchMachinery()
+            }
+          />
+        )}
+      </View>
+
+      <BottomSheet
+        visible={showFarmList}
+        onBackButtonPress={() => setShowFarmList(false)}
+        onBackdropPress={() => setShowFarmList(false)}
+      >
+        <View style={styles.bottomSheet}>
+          <Text style={styles.bottomSheetTitle}>Select a Farm</Text>
+          {farms.map((farm) => (
+            <View
+              key={farm.id}
+              style={[
+                styles.farmItem,
+                {
+                  backgroundColor:
+                    selectedFarm?.id === farm.id ? COLORS.PRIMARY : "#fff",
+                },
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.farmNameContainer}
+                onPress={() => handleSelectFarm(farm)}
+              >
+                <Text style={styles.farmName}>{farm.description}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleDeleteFarm(farm.id)}
+                style={styles.deleteButton}
+              >
+                <Icon name="trash" size={20} color={COLORS.ACCENT} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      </BottomSheet>
+
+      <Modal visible={showForm} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>New Farm Location</Text>
+              <TouchableOpacity onPress={handleCancelAdd}>
+                <Icon name="close" size={24} color={COLORS.TEXT} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.label}>Farm Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter farm name"
+              value={farmName}
+              onChangeText={setFarmName}
+              autoFocus
+            />
+            <PaperButton
+              mode="contained"
+              color={COLORS.PRIMARY}
+              onPress={handleSaveFarm}
+              disabled={!farmName.trim() || isSaving}
+              style={styles.saveButton}
+            >
+              {isSaving ? <ActivityIndicator color="#fff" /> : "Save Farm"}
+            </PaperButton>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showDeleteConfirm} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Farm</Text>
+            <Text style={styles.modalText}>
+              Are you sure you want to delete this farm?
+            </Text>
+            <View style={styles.modalButtons}>
+              <PaperButton
+                mode="outlined"
+                onPress={() => setShowDeleteConfirm(false)}
+                style={styles.modalButton}
+              >
+                Cancel
+              </PaperButton>
+              <PaperButton
+                mode="contained"
+                color={COLORS.ACCENT}
+                onPress={confirmDeleteFarm}
+                style={styles.modalButton}
+              >
+                Delete
+              </PaperButton>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
-}
+};
+
+const mapStyle = [
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#F2F2F7" }],
+  },
+  {
+    featureType: "landscape",
+    elementType: "geometry",
+    stylers: [{ color: "#E5E5EA" }],
+  },
+];
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
-  },
-  header: {
-    backgroundColor: COLORS.PRIMARY,
-    padding: SIZES.PADDING,
-    paddingBottom: SIZES.PADDING_SM,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.TEXT_LIGHT,
-    textAlign: "center",
-  },
-  content: {
-    flex: 1,
-    padding: SIZES.PADDING,
-  },
-  section: {
-    marginBottom: SIZES.MARGIN_LARGE,
-  },
-  sectionHeader: {
-    fontSize: SIZES.TITLE,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.TERTIARY,
-    marginBottom: SIZES.MARGIN_MEDIUM,
-  },
-  sectionSubtext: {
-    fontSize: 14,
-    fontFamily: FONTS.REGULAR,
-    color: COLORS.TEXT_DARK,
-    marginBottom: SIZES.MARGIN_MEDIUM,
-    opacity: 0.8,
-  },
-  dateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  dateInput: {
-    flex: 1,
+  container: { flex: 1 },
+  map: { flex: 1 },
+  searchContainer: {
+    position: "absolute",
+    top: 40,
+    left: 20,
+    right: 20,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: COLORS.SECONDARY,
-    borderRadius: SIZES.BORDER_RADIUS,
-    padding: SIZES.PADDING_SM,
-    height: 50,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  dateInputError: {
-    borderColor: COLORS.ERROR,
-    borderWidth: 1.5,
-  },
-  dateArrow: {
-    marginHorizontal: 10,
-  },
-  dateText: {
-    marginLeft: SIZES.SPACING + 2,
-    fontSize: SIZES.INFO_TEXT,
-    fontFamily: FONTS.MEDIUM,
-    color: COLORS.TEXT_DARK,
-  },
-  errorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: SIZES.MARGIN_MEDIUM,
-    paddingHorizontal: SIZES.PADDING_SM,
-  },
-  errorText: {
-    marginLeft: 5,
-    color: COLORS.ERROR,
-    fontSize: 14,
-    fontFamily: FONTS.MEDIUM,
-  },
-  operationsList: {
-    paddingVertical: SIZES.PADDING_SM,
-  },
-  operationButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.SECONDARY,
-    borderRadius: 30,
-    paddingVertical: SIZES.PADDING_SM,
-    paddingHorizontal: SIZES.PADDING,
-    marginRight: SIZES.MARGIN_MEDIUM,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  operationSelected: {
-    backgroundColor: COLORS.ACCENT,
-  },
-  operationIcon: {
-    marginRight: 8,
-  },
-  operationText: {
-    fontSize: SIZES.INFO_TEXT,
-    fontFamily: FONTS.MEDIUM,
-    color: COLORS.TEXT_LIGHT,
-  },
-  operationTextSelected: {
-    color: COLORS.TEXT_DARK,
-    fontFamily: FONTS.BOLD,
-  },
-  machinesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginTop: SIZES.MARGIN_MEDIUM,
-  },
-  machineCard: {
-    width: "48%",
-    backgroundColor: "#fff",
-    borderRadius: SIZES.BORDER_RADIUS,
-    padding: SIZES.PADDING_SM,
-    marginBottom: SIZES.MARGIN_MEDIUM,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderRadius: 25,
+    padding: 10,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  machineCardSelected: {
-    borderColor: COLORS.PRIMARY,
-    backgroundColor: "#f9fff0",
-  },
-  machineIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.SECONDARY,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SIZES.MARGIN_MEDIUM,
-  },
-  machineIconSelected: {
-    backgroundColor: COLORS.PRIMARY,
-  },
-  machineLabel: {
-    fontSize: SIZES.INFO_TEXT,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.TEXT_DARK,
-    marginBottom: 4,
-  },
-  machineLabelSelected: {
-    color: COLORS.PRIMARY,
-  },
-  machineDescription: {
-    fontSize: 12,
-    fontFamily: FONTS.REGULAR,
-    color: COLORS.TEXT_DARK,
-    textAlign: "center",
-    opacity: 0.7,
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: SIZES.PADDING_SM * 2,
-    backgroundColor: "#fff",
-    borderRadius: SIZES.BORDER_RADIUS,
-    marginTop: SIZES.MARGIN_MEDIUM,
-  },
-  emptyStateText: {
-    marginTop: SIZES.MARGIN_MEDIUM,
-    fontSize: SIZES.INFO_TEXT,
-    fontFamily: FONTS.MEDIUM,
-    color: COLORS.TEXT_DARK,
-    textAlign: "center",
-  },
-  footer: {
-    padding: SIZES.PADDING,
-    backgroundColor: COLORS.BACKGROUND,
-    borderTopWidth: 1,
-    borderTopColor: `${COLORS.TERTIARY}20`,
-  },
-  button: {
-    flexDirection: "row",
-    backgroundColor: COLORS.PRIMARY,
-    paddingVertical: 16,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 4,
   },
-  buttonText: {
-    fontSize: SIZES.BUTTON_TEXT,
-    fontFamily: FONTS.BOLD,
-    color: COLORS.TEXT_LIGHT,
-    marginRight: 8,
+  searchIcon: { marginHorizontal: 10 },
+  searchInput: { flex: 1, height: 40, fontSize: 16, color: COLORS.TEXT },
+  suggestionsContainer: {
+    position: "absolute",
+    top: 80,
+    left: 20,
+    right: 20,
+    backgroundColor: COLORS.BACKGROUND,
+    borderRadius: 10,
+    elevation: 5,
+    maxHeight: 200,
+    zIndex: 1000,
   },
-  buttonDisabled: {
-    backgroundColor: COLORS.TEXT_DARK,
-    opacity: 0.4,
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.PRIMARY,
   },
+  suggestionText: {
+    fontSize: 16,
+    color: COLORS.TEXT,
+    fontFamily: FONTS.REGULAR,
+  },
+  topControlsContainer: {
+    position: "absolute",
+    top: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: "rgba(242, 242, 247, 0.95)",
+    borderRadius: 15,
+    padding: 15,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  selectedFarmContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  checkIcon: { marginRight: 5 },
+  selectedFarmText: { fontSize: 16, fontWeight: "600", color: COLORS.TEXT },
+  distanceHeader: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.TEXT,
+    marginBottom: 5,
+  },
+  distanceText: { fontSize: 14, color: COLORS.TEXT, marginBottom: 5 },
+  slider: { width: "100%", height: 40 },
+  controlsContainer: { position: "absolute", bottom: 30, right: 20, gap: 10 },
+  fab: {
+    borderRadius: 30,
+    paddingHorizontal: 10,
+    width: 150,
+    marginVertical: 5,
+  },
+  bottomSheet: {
+    backgroundColor: COLORS.SECONDARY,
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: 300,
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.TEXT,
+    marginBottom: 10,
+  },
+  farmItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 5,
+    elevation: 1,
+  },
+  farmNameContainer: { flex: 1 },
+  farmName: { fontSize: 16, color: COLORS.TEXT_DARK },
+  deleteButton: { padding: 10 },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    width: "85%",
+    backgroundColor: COLORS.SECONDARY,
+    borderRadius: 20,
+    padding: 20,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: { fontSize: 20, fontWeight: "600", color: COLORS.TEXT },
+  modalText: {
+    fontSize: 16,
+    color: COLORS.TEXT,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalButtons: { flexDirection: "row", justifyContent: "space-between" },
+  modalButton: { flex: 1, marginHorizontal: 5, borderRadius: 10 },
+  label: { fontSize: 16, color: COLORS.TEXT, marginBottom: 5 },
+  input: {
+    height: 50,
+    borderColor: COLORS.BORDER,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 20,
+    fontSize: 16,
+    backgroundColor: "#fff",
+  },
+  saveButton: { marginTop: 10, borderRadius: 10 },
 });
+
+export default FarmSelectScreen;
