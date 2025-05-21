@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Alert,
+  Animated,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
@@ -26,83 +28,42 @@ import * as Location from "expo-location";
 import { COLORS, SIZES, FONTS } from "../../constants/styles";
 import { farmService } from "../../services/farmService";
 
-const MACHINES = [
-  {
-    id: "tractor",
-    label: "Tractor",
-    icon: "tractor",
-    description: "For field preparation and towing",
-  },
-  {
-    id: "rotavator",
-    label: "Rotavator",
-    icon: "hammer",
-    description: "For soil cultivation",
-  },
-  {
-    id: "harvester",
-    label: "Harvester",
-    icon: "crop-harvest",
-    description: "For crop collection",
-  },
-  {
-    id: "landleveller",
-    label: "Land Leveller",
-    icon: "land-plots",
-    description: "For field leveling",
-  },
-  {
-    id: "seeddrill",
-    label: "Seed Drill",
-    icon: "seed",
-    description: "For precise seed placement",
-  },
-];
+// Components
+import DateRangeSelector from '../../components/MachineryScreen/DateRangeSelector';
+import SearchRadius from '../../components/MachineryScreen/SearchRadius';
+import OperationSelector from '../../components/MachineryScreen/OperationSelector';
+import MachineryGrid from '../../components/MachineryScreen/MachineryGrid';
+import FloatingActionButtons from '../../components/MachineryScreen/FloatingActionButtons';
+import FarmModal from '../../components/MachineryScreen/FarmModal';
 
-const OPERATIONS = [
-  {
-    id: "soil_preparation",
-    label: "Soil Preparation",
-    machines: ["tractor", "rotavator", "landleveller"],
-    icon: "shovel",
-  },
-  {
-    id: "planting",
-    label: "Planting",
-    machines: ["seeddrill"],
-    icon: "seed-outline",
-  },
-  {
-    id: "harvesting",
-    label: "Harvesting",
-    machines: ["harvester"],
-    icon: "corn",
-  },
-];
+// Constants
+import { OPERATIONS, MACHINES } from '../../constants/machinery';
 
 const API_BASE_URL = "http://10.0.2.2:8080";
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
-export default function MachineryScreen({ navigation }) {
+const MachineryScreen = ({ navigation }) => {
   // State variables
-  const [selectedOperation, setSelectedOperation] = useState(OPERATIONS[0].id);
+  const [selectedOperation, setSelectedOperation] = useState(null);
   const [selectedMachine, setSelectedMachine] = useState(null);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(null);
   const [dateError, setDateError] = useState(false);
-  const [distance, setDistance] = useState(25);
+  const [showDatePicker, setShowDatePicker] = useState(null);
+  const [distance, setDistance] = useState(50);
   const [farms, setFarms] = useState([]);
   const [selectedFarm, setSelectedFarm] = useState(null);
-  const [showFarmModal, setShowFarmModal] = useState(false);
-  const [isAddingFarm, setIsAddingFarm] = useState(false);
+  const [isFarmModalVisible, setIsFarmModalVisible] = useState(false);
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [farmTitle, setFarmTitle] = useState("");
   const [locationSearch, setLocationSearch] = useState("");
   const [locationSuggestions, setLocationSuggestions] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const mapRef = useRef(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadFarms();
@@ -111,11 +72,14 @@ export default function MachineryScreen({ navigation }) {
 
   const loadFarms = async () => {
     try {
+      setIsLoading(true);
       const farms = await farmService.getUserFarms();
       setFarms(farms);
       if (farms.length > 0) setSelectedFarm(farms[0]);
     } catch (error) {
       Alert.alert("Error", "Failed to load farms");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -141,22 +105,15 @@ export default function MachineryScreen({ navigation }) {
     }
   };
 
-  const handleLocationSelect = async (placeId) => {
+  const handleLocationSelect = async (place) => {
     try {
       const response = await axios.get(
-        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${GOOGLE_PLACES_API_KEY}`
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&key=${GOOGLE_PLACES_API_KEY}`
       );
       const { lat, lng } = response.data.result.geometry.location;
       setSelectedLocation({ latitude: lat, longitude: lng });
-      mapRef.current?.animateToRegion(
-        {
-          latitude: lat,
-          longitude: lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        500
-      );
+      setLocationSearch(place.description);
+      setLocationSuggestions([]);
     } catch (error) {
       Alert.alert("Error", "Failed to fetch location details");
     }
@@ -191,16 +148,69 @@ export default function MachineryScreen({ navigation }) {
     setFarmTitle("");
     setLocationSearch("");
     setSelectedLocation(null);
-    setIsAddingFarm(false);
-    setShowFarmModal(false);
+    setIsFarmModalVisible(false);
+  };
+
+  const handleDateChange = (event, date) => {
+    setShowDatePicker(null);
+    if (date) {
+      if (showDatePicker === "start") {
+        setStartDate(date);
+        if (date > endDate) setDateError(true);
+      } else {
+        setEndDate(date);
+        if (date < startDate) setDateError(true);
+        else setDateError(false);
+      }
+    }
+  };
+
+  const handleStartDatePress = () => {
+    setShowDatePicker("start");
+  };
+
+  const handleEndDatePress = () => {
+    setShowDatePicker("end");
+  };
+
+  const handleOperationSelect = (operation) => {
+    setSelectedOperation(operation);
+    setSelectedMachine(null);
+  };
+
+  const handleMachineSelect = (machine) => {
+    setSelectedMachine(machine);
+  };
+
+  const handleFarmPress = () => {
+    setIsFarmModalVisible(true);
+  };
+
+  const handleFilterPress = () => {
+    setIsFilterModalVisible(true);
+  };
+
+  const handleFarmSelect = (farm) => {
+    setSelectedFarm(farm);
+    setIsFarmModalVisible(false);
   };
 
   const handleSearch = () => {
     if (!selectedFarm || !selectedMachine) {
-      Alert.alert("Error", "Please select farm and machinery");
+      Alert.alert(
+        "Missing Information",
+        "Please select both a farm and machinery to proceed.",
+        [
+          {
+            text: "OK",
+            onPress: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+          }
+        ]
+      );
       return;
     }
 
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     navigation.navigate("MachinerySearch", {
       farm: selectedFarm,
       machine: selectedMachine,
@@ -210,322 +220,159 @@ export default function MachineryScreen({ navigation }) {
     });
   };
 
+  const renderHeader = () => (
+    <Animated.View style={[
+      styles.header,
+      {
+        transform: [{
+          translateY: scrollY.interpolate({
+            inputRange: [0, 100],
+            outputRange: [0, -100],
+            extrapolate: 'clamp'
+          })
+        }]
+      }
+    ]}>
+      <Text style={styles.headerTitle}>Hire Machinery</Text>
+      <Text style={styles.headerSubtitle}>Select your requirements</Text>
+    </Animated.View>
+  );
+
+  const renderContent = () => (
+    <View style={styles.content}>
+      <DateRangeSelector
+        startDate={startDate}
+        endDate={endDate}
+        dateError={dateError}
+        onStartDatePress={handleStartDatePress}
+        onEndDatePress={handleEndDatePress}
+      />
+      <SearchRadius
+        distance={distance}
+        onDistanceChange={setDistance}
+      />
+      <OperationSelector
+        operations={OPERATIONS}
+        selectedOperation={selectedOperation}
+        onOperationSelect={handleOperationSelect}
+      />
+      <MachineryGrid
+        machines={MACHINES}
+        selectedOperation={selectedOperation}
+        selectedMachine={selectedMachine}
+        onMachineSelect={handleMachineSelect}
+      />
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+        <Text style={styles.loadingText}>Loading your farms...</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor={COLORS.PRIMARY} barStyle="light-content" />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Date Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>Date Range</Text>
-          <View style={styles.dateContainer}>
-            <Pressable
-              style={styles.dateInput}
-              onPress={() => setShowDatePicker("start")}
-            >
-              <MaterialCommunityIcons
-                name="calendar-start"
-                size={20}
-                color={COLORS.PRIMARY}
-              />
-              <Text style={styles.dateText}>
-                {startDate.toLocaleDateString()}
-              </Text>
-            </Pressable>
+      <Animated.FlatList
+        data={[]}
+        renderItem={null}
+        ListHeaderComponent={renderContent}
+        contentContainerStyle={styles.listContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      />
 
-            <Text style={styles.dateSeparator}>–</Text>
+      <FloatingActionButtons
+        onFarmPress={handleFarmPress}
+        onFilterPress={handleFilterPress}
+        onSearchPress={handleSearch}
+      />
 
-            <Pressable
-              style={styles.dateInput}
-              onPress={() => setShowDatePicker("end")}
-            >
-              <MaterialCommunityIcons
-                name="calendar-end"
-                size={20}
-                color={COLORS.PRIMARY}
-              />
-              <Text style={styles.dateText}>
-                {endDate.toLocaleDateString()}
-              </Text>
-            </Pressable>
-          </View>
-          {dateError && (
-            <Text style={styles.errorText}>End date must be after start</Text>
-          )}
-        </View>
+      <FarmModal
+        visible={isFarmModalVisible}
+        onClose={resetFarmForm}
+        selectedFarm={selectedFarm}
+        onFarmSelect={handleFarmSelect}
+        farms={farms}
+        farmTitle={farmTitle}
+        locationSearch={locationSearch}
+        locationSuggestions={locationSuggestions}
+        selectedLocation={selectedLocation}
+        isSaving={isSaving}
+        onFarmTitleChange={setFarmTitle}
+        onLocationSearchChange={(text) => {
+          setLocationSearch(text);
+          handleSearchLocation(text);
+        }}
+        onLocationSelect={handleLocationSelect}
+        onSaveFarm={handleSaveFarm}
+      />
 
-        {/* Search Radius */}
-        <View style={styles.section}>
-          <View style={styles.distanceHeader}>
-            <Text style={styles.sectionHeader}>Search Radius</Text>
-            <Text style={styles.distanceValue}>{distance} km</Text>
-          </View>
-          <Slider
-            minimumValue={5}
-            maximumValue={100}
-            step={5}
-            value={distance}
-            onValueChange={setDistance}
-            minimumTrackTintColor={COLORS.PRIMARY}
-            maximumTrackTintColor={COLORS.SECONDARY}
-            thumbTintColor={COLORS.PRIMARY}
-          />
-        </View>
-
-        {/* Operation Type */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>Operation Type</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {OPERATIONS.map((op) => (
-              <Pressable
-                key={op.id}
-                style={[
-                  styles.operationButton,
-                  selectedOperation === op.id && styles.selectedOperation,
-                ]}
-                onPress={() => setSelectedOperation(op.id)}
-              >
-                <MaterialCommunityIcons
-                  name={op.icon}
-                  size={24}
-                  color={
-                    selectedOperation === op.id ? COLORS.PRIMARY : COLORS.TEXT
-                  }
-                />
-                <Text
-                  style={[
-                    styles.operationText,
-                    selectedOperation === op.id && styles.selectedOperationText,
-                  ]}
-                >
-                  {op.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Machinery Grid */}
-        <View style={styles.section}>
-          <Text style={styles.sectionHeader}>Available Machinery</Text>
-          <FlatList
-            data={MACHINES.filter((m) =>
-              OPERATIONS.find(
-                (o) => o.id === selectedOperation
-              )?.machines.includes(m.id)
-            )}
-            numColumns={2}
-            columnWrapperStyle={styles.machineryGrid}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[
-                  styles.machineCard,
-                  selectedMachine?.id === item.id && styles.selectedMachineCard,
-                ]}
-                onPress={() => setSelectedMachine(item)}
-              >
-                <MaterialCommunityIcons
-                  name={item.icon}
-                  size={32}
-                  color={
-                    selectedMachine?.id === item.id
-                      ? COLORS.PRIMARY
-                      : COLORS.TEXT
-                  }
-                />
-                <Text style={styles.machineLabel}>{item.label}</Text>
-                <Text style={styles.machineDescription}>
-                  {item.description}
-                </Text>
-              </Pressable>
-            )}
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <MaterialCommunityIcons
-                  name="alert-circle-outline"
-                  size={40}
-                  color={COLORS.SECONDARY}
-                />
-                <Text style={styles.emptyStateText}>
-                  No machinery available
-                </Text>
-              </View>
-            }
-          />
-        </View>
-      </ScrollView>
-
-      {/* Floating Action Buttons */}
-      <View style={styles.fabContainer}>
-        <Pressable style={styles.fab} onPress={() => setShowFarmModal(true)}>
-          <MaterialCommunityIcons name="farm" size={24} color="white" />
-        </Pressable>
-        <Pressable
-          style={[styles.fab, styles.searchFab]}
-          onPress={handleSearch}
-        >
-          <MaterialCommunityIcons name="magnify" size={24} color="white" />
-        </Pressable>
-      </View>
-
-      {/* Farm Selection Modal */}
-      <Modal
-        visible={showFarmModal}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowFarmModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {isAddingFarm ? "Add New Farm" : "Your Farms"}
-              </Text>
-              <TouchableOpacity onPress={() => setShowFarmModal(false)}>
-                <Icon name="close" size={24} color={COLORS.TEXT} />
-              </TouchableOpacity>
-            </View>
-
-            {isAddingFarm ? (
-              <View style={styles.addFarmContainer}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Farm Title"
-                  value={farmTitle}
-                  onChangeText={setFarmTitle}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Search Location"
-                  value={locationSearch}
-                  onChangeText={(text) => {
-                    setLocationSearch(text);
-                    handleSearchLocation(text);
-                  }}
-                />
-
-                {locationSuggestions.length > 0 && (
-                  <FlatList
-                    data={locationSuggestions}
-                    keyExtractor={(item) => item.place_id}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.suggestionItem}
-                        onPress={() => {
-                          handleLocationSelect(item.place_id);
-                          setLocationSearch(item.description);
-                          setLocationSuggestions([]);
-                        }}
-                      >
-                        <Text style={styles.suggestionText}>
-                          {item.description}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                )}
-
-                <MapView
-                  ref={mapRef}
-                  style={styles.map}
-                  initialRegion={{
-                    latitude: 37.78825,
-                    longitude: -122.4324,
-                    latitudeDelta: 0.0922,
-                    longitudeDelta: 0.0421,
-                  }}
-                >
-                  {selectedLocation && <Marker coordinate={selectedLocation} />}
-                </MapView>
-
-                <Pressable
-                  style={styles.saveButton}
-                  onPress={handleSaveFarm}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <Text style={styles.saveButtonText}>Save Farm</Text>
-                  )}
-                </Pressable>
-              </View>
-            ) : (
-              <>
-                <FlatList
-                  data={farms}
-                  keyExtractor={(item) => item.id}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={[
-                        styles.farmItem,
-                        selectedFarm?.id === item.id && styles.selectedFarmItem,
-                      ]}
-                      onPress={() => setSelectedFarm(item)}
-                    >
-                      <Text style={styles.farmTitle}>{item.title}</Text>
-                      <Text style={styles.farmLocation}>
-                        {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={() =>
-                          farmService.deleteFarm(item.id).then(loadFarms)
-                        }
-                      >
-                        <Icon name="trash-o" size={20} color={COLORS.ERROR} />
-                      </TouchableOpacity>
-                    </TouchableOpacity>
-                  )}
-                  ListEmptyComponent={
-                    <Text style={styles.emptyText}>No farms added yet</Text>
-                  }
-                />
-                <Pressable
-                  style={styles.addButton}
-                  onPress={() => setIsAddingFarm(true)}
-                >
-                  <Text style={styles.addButtonText}>Add New Farm</Text>
-                </Pressable>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Date Pickers */}
       {showDatePicker && (
         <DateTimePicker
           value={showDatePicker === "start" ? startDate : endDate}
           mode="date"
           display="spinner"
-          onChange={(_, date) => {
-            setShowDatePicker(null);
-            if (date) {
-              if (showDatePicker === "start") {
-                setStartDate(date);
-                if (date > endDate) setDateError(true);
-              } else {
-                setEndDate(date);
-                if (date < startDate) setDateError(true);
-                else setDateError(false);
-              }
-            }
-          }}
+          onChange={handleDateChange}
         />
       )}
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
   },
-  content: {
+  header: {
+    backgroundColor: COLORS.PRIMARY,
     padding: SIZES.PADDING,
+    paddingTop: SIZES.PADDING * 2,
+    borderBottomLeftRadius: SIZES.BORDER_RADIUS * 2,
+    borderBottomRightRadius: SIZES.BORDER_RADIUS * 2,
+    elevation: 4,
+    shadowColor: COLORS.BLACK,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  headerTitle: {
+    ...FONTS.BOLD,
+    fontSize: 24,
+    color: COLORS.WHITE,
+    marginBottom: SIZES.MARGIN_SMALL,
+  },
+  headerSubtitle: {
+    ...FONTS.REGULAR,
+    fontSize: 16,
+    color: COLORS.WHITE,
+    opacity: 0.8,
+  },
+  listContent: {
+    padding: SIZES.PADDING,
+  },
+  content: {
+    gap: SIZES.MARGIN_LARGE,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.BACKGROUND,
+  },
+  loadingText: {
+    ...FONTS.MEDIUM,
+    color: COLORS.TERTIARY,
+    marginTop: SIZES.MARGIN_MEDIUM,
   },
   section: {
     marginBottom: SIZES.MARGIN_LARGE,
@@ -719,3 +566,5 @@ const styles = StyleSheet.create({
     marginTop: SIZES.MARGIN_SMALL,
   },
 });
+
+export default MachineryScreen;
