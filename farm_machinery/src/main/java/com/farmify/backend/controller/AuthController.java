@@ -1,6 +1,7 @@
 package com.farmify.backend.controller;
 
 import com.farmify.backend.dto.*;
+import com.farmify.backend.exception.ResourceNotFoundException;
 import com.farmify.backend.service.JwtService;
 import com.farmify.backend.service.UserService;
 import com.twilio.exception.ApiException;
@@ -54,11 +55,14 @@ public class AuthController {
                     .create();
             if ("approved".equalsIgnoreCase(verificationCheck.getStatus())) {
                 boolean isNewUser = false;
-                if(userService.findByPhoneNumber(request.getPhoneNumber()) == null) {
-                    userService.createUser(request.getPhoneNumber());
+                Long userId;
+                try {
+                    userId = userService.findByPhoneNumber(request.getPhoneNumber()).getId();
+                } catch (ResourceNotFoundException e) {
+                    logger.info("User not found, creating user for phone number: {}", request.getPhoneNumber());
+                    userId = userService.createUser(request.getPhoneNumber()).getId();
                     isNewUser = true;
                 }
-                Long userId = userService.findByPhoneNumber(request.getPhoneNumber()).getId();
                 String token = jwtService.generateToken(userId, request.getPhoneNumber());
                 AuthResponse authResponse = new AuthResponse(true, "Login successful", token, isNewUser);
                 return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", authResponse));
